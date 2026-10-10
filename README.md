@@ -26,10 +26,13 @@ and `.venv\Scripts\nilavu.exe` instead of the corresponding `.venv/bin` paths.
 
 ## Use
 
-Run in your existing terminal:
+From the repository, run in your existing terminal. `./dev run` without arguments
+opens Nilavu's palette source file for a quick playground; supply any local code
+or text file to explore something else:
 
 ```bash
-.venv/bin/nilavu pyproject.toml
+./dev run
+./dev run pyproject.toml
 ```
 
 Use `h`, `j`, `k`, `l` or the arrow keys to move left, down, up, and right.
@@ -40,7 +43,7 @@ empty space beside short lines.
 Adjust the light when launching:
 
 ```bash
-.venv/bin/nilavu pyproject.toml --radius 14 --cell-aspect-ratio 1.8
+./dev run pyproject.toml --radius 14 --cell-aspect-ratio 1.8
 ```
 
 | Option | Default | Meaning |
@@ -51,8 +54,8 @@ Adjust the light when launching:
 Choose a coordinated text, cell-background, darkness, and cursor palette:
 
 ```bash
-.venv/bin/nilavu pyproject.toml --theme moonlight
-.venv/bin/nilavu pyproject.toml --theme forest --seed fern --radius 14
+./dev run pyproject.toml --theme moonlight
+./dev run pyproject.toml --theme forest --seed fern --radius 14
 ```
 
 `--theme` accepts `moonlight` (the default, cool blue) or `forest` (seeded greens
@@ -67,8 +70,8 @@ Lighting and scrolling use the same settings. Scrolling margins shrink on small 
 document boundaries can still clip the light. Tune the aspect ratio to suit your
 terminal font rather than assuming every terminal has the same cell shape.
 
-See all options with `.venv/bin/nilavu --help`. You can also launch with
-`.venv/bin/python -m nilavu pyproject.toml`.
+See all options with `./dev run --help`. The launcher uses the existing virtual
+environment automatically. You can also activate it with `source .venv/bin/activate` and use `nilavu` directly.
 
 ## Input handling and current limits
 
@@ -90,7 +93,16 @@ See all options with `.venv/bin/nilavu --help`. You can also launch with
 ## Tests
 
 ```bash
-.venv/bin/python -m unittest discover -s tests
+./dev test
+./dev test -v
+```
+
+`./dev help` lists development shortcuts. The `dev` script uses a POSIX shell
+(macOS/Linux). On Windows, use the commands directly:
+
+```powershell
+.venv\Scripts\python.exe -m unittest discover -s tests
+.venv\Scripts\nilavu.exe pyproject.toml
 ```
 
 ## License

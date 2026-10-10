@@ -1,0 +1,63 @@
+#!/bin/sh
+# Repository development shortcuts. Keep the existing virtual environment as
+# the single source of dependencies, without requiring shell activation.
+set -eu
+
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+python="$project_dir/.venv/bin/python"
+
+usage() {
+    cat <<'HELP'
+Usage:
+  ./dev run [FILE] [OPTIONS]   Launch Nilavu; defaults to its palette source file
+  ./dev test [OPTIONS]        Run unittest discovery; accepts options such as -v
+  ./dev help                 Show these shortcuts
+
+Examples:
+  ./dev run
+  ./dev run src/nilavu/cli.py --theme forest --seed fern --radius 14
+  ./dev run "path with spaces/example.py" --theme moonlight
+  ./dev test
+  ./dev test -v
+
+Run ./dev run --help for Nilavu's file, theme, seed, and light options.
+HELP
+}
+
+command=${1:-help}
+if [ "$#" -gt 0 ]; then
+    shift
+fi
+case "$command" in
+    help|-h|--help)
+        usage
+        exit 0
+        ;;
+    run|test) ;;
+    *)
+        printf 'Unknown development command: %s\n' "$command" >&2
+        usage >&2
+        exit 2
+        ;;
+esac
+
+if [ ! -x "$python" ]; then
+    printf 'Set up the virtual environment first, from the repository:\n' >&2
+    printf '  python3 -m venv .venv\n  .venv/bin/python -m pip install -e .\n' >&2
+    exit 1
+fi
+
+case "$command" in
+    run)
+        if [ "$#" -eq 0 ]; then
+            set -- "$project_dir/src/nilavu/palette.py"
+        fi
+        # Quoted arguments preserve spaces and literal seed text. exec hands
+        # the terminal directly to Nilavu, including keyboard input and signals.
+        exec "$python" -m nilavu "$@"
+        ;;
+    test)
+        cd "$project_dir"
+        exec "$python" -m unittest discover -s tests "$@"
+        ;;
+esac
