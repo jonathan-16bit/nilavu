@@ -35,7 +35,8 @@ case "$command" in
         ;;
     run|test) ;;
     *)
-        printf 'Unknown development command: %s\n' "$command" >&2
+        # Avoid sending control characters from an unknown argument to the terminal.
+        printf 'Unknown development command. Use run, test, or help.\n' >&2
         usage >&2
         exit 2
         ;;
