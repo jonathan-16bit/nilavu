@@ -27,7 +27,7 @@ class NilavuApp(App[None], inherit_bindings=False):
 
     # The approved explicit background makes the fade predictable. Colors come
     # from one palette boundary rather than being scattered through rendering.
-    # A screen-sized widget still clips extra content without scrolling.
+    # The widget draws a document viewport; framework scrollbars are unnecessary.
     CSS = f"""
     Screen {{
         background: {DEFAULT_PALETTE.color_at(0.0)};
@@ -63,6 +63,4 @@ class NilavuApp(App[None], inherit_bindings=False):
             return
         self.light_position = position
         source = self.query_one(SourceView)
-        source.light_position = position
-        # Textual schedules the redraw; we don't run our own rendering loop.
-        source.refresh()
+        source.update_light(position)
