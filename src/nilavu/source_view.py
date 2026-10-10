@@ -28,8 +28,14 @@ class SourceView(Static):
         self.palette = palette
 
     def render(self) -> Content:
-        """Return actual source characters with foreground-color spans."""
-        lines = [line[: self.size.width] for line in self._lines[: self.size.height]]
+        """Return source characters with stepped cell shading and a cursor."""
+        # Pad the visible rectangle with spaces, as a terminal already does.
+        # Styling those cells makes the light and cursor visible on blank lines.
+        lines = [
+            (self._lines[y] if y < len(self._lines) else "")
+            [: self.size.width].ljust(self.size.width)
+            for y in range(self.size.height)
+        ]
         spans = []
         offset = 0
         for y, line in enumerate(lines):
@@ -37,10 +43,14 @@ class SourceView(Static):
                 intensity = brightness_at(
                     x, y, self.light_position.x, self.light_position.y, LIGHT_RADIUS
                 )
-                color = self.palette.color_at(intensity)
+                style = self.palette.style_at(intensity)
+                # Apply the cursor last so it stays distinct from every shade.
+                # The original character (including a space) stays underneath.
+                if (x, y) == (self.light_position.x, self.light_position.y):
+                    style = self.palette.cursor_style()
                 # A span styles one character in the combined text. Newlines
                 # occupy a string position too, so each row advances by len + 1.
-                spans.append(Span(offset + x, offset + x + 1, color))
+                spans.append(Span(offset + x, offset + x + 1, style))
             offset += len(line) + 1
         # Content receives literal text, not parsed markup. Dark characters remain
         # source characters; their foreground matches the approved background.

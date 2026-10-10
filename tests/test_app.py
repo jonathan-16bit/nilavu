@@ -28,8 +28,8 @@ class NilavuAppTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(source.render_line(1).text.rstrip(), r"\x1b[31mtext")
                 # The approved palette must survive the rendering pipeline.
                 style = next(iter(source.render_line(0))).style
-                self.assertEqual(style.color.triplet, DEFAULT_PALETTE.foreground)
-                self.assertEqual(style.bgcolor.triplet, DEFAULT_PALETTE.background)
+                self.assertEqual(style.color.triplet, DEFAULT_PALETTE.background)
+                self.assertEqual(style.bgcolor.triplet, DEFAULT_PALETTE.cursor_background)
 
     async def test_empty_document_starts_with_a_blank_screen(self):
         app = NilavuApp("")
