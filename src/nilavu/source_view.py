@@ -7,17 +7,10 @@ from textual.events import Resize
 from textual.widgets import Static
 
 from nilavu.cells import visible_cells
-from nilavu.lighting import brightness_at
+from nilavu.lighting import DEFAULT_LIGHT_SETTINGS, LightSettings, brightness_at
 from nilavu.navigation import LightPosition
 from nilavu.palette import DEFAULT_PALETTE, Palette
 from nilavu.viewport import Viewport
-
-
-# Radius in column-width units; tune the light's reach independently of its shape.
-LIGHT_RADIUS = 12.0
-# Cell height / width. Keep this visual estimate explicit and easy to tune after
-# trying the light with different fonts; it is not a universal terminal constant.
-CELL_ASPECT_RATIO = 2.0
 
 
 class SourceView(Static):
@@ -28,6 +21,8 @@ class SourceView(Static):
         source_text: str,
         light_position: LightPosition,
         palette: Palette = DEFAULT_PALETTE,
+        *,
+        light_settings: LightSettings = DEFAULT_LIGHT_SETTINGS,
     ) -> None:
         super().__init__(id="source", markup=False)
         # The document is split once. Movement changes only light state, never
@@ -35,6 +30,7 @@ class SourceView(Static):
         self._lines = source_text.split("\n")
         self.light_position = light_position
         self.palette = palette
+        self.light_settings = light_settings
         self.viewport = Viewport()
 
     def update_light(self, position: LightPosition) -> None:
@@ -55,8 +51,10 @@ class SourceView(Static):
             self.light_position,
             width,
             height,
-            margin_x=math.ceil(LIGHT_RADIUS),
-            margin_y=math.ceil(LIGHT_RADIUS / CELL_ASPECT_RATIO),
+            margin_x=math.ceil(self.light_settings.radius),
+            margin_y=math.ceil(
+                self.light_settings.radius / self.light_settings.cell_aspect_ratio
+            ),
         )
 
     def render(self) -> Content:
@@ -77,8 +75,8 @@ class SourceView(Static):
                     document_y,
                     self.light_position.x,
                     self.light_position.y,
-                    LIGHT_RADIUS,
-                    cell_aspect_ratio=CELL_ASPECT_RATIO,
+                    self.light_settings.radius,
+                    cell_aspect_ratio=self.light_settings.cell_aspect_ratio,
                 )
                 style = self.palette.style_at(intensity)
                 # Apply the cursor last so it stays distinct from every shade.

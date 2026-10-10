@@ -1,6 +1,28 @@
 """Pure brightness calculations, independent of terminal colors and rendering."""
 
 import math
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class LightSettings:
+    """Validated geometry shared by shading and viewport following."""
+
+    radius: float = 12.0  # Reach in terminal column-width units.
+    cell_aspect_ratio: float = 2.0  # Cell height divided by cell width.
+
+    def __post_init__(self) -> None:
+        if not math.isfinite(self.radius) or self.radius <= 0:
+            raise ValueError("Light radius must be finite and positive.")
+        if not math.isfinite(self.cell_aspect_ratio) or self.cell_aspect_ratio <= 0:
+            raise ValueError("Cell aspect ratio must be finite and positive.")
+        # Individually finite values can still overflow when converted to rows.
+        # Reject that combination before scrolling tries to round infinity.
+        if not math.isfinite(self.radius / self.cell_aspect_ratio):
+            raise ValueError("Radius divided by cell aspect ratio must be finite.")
+
+
+DEFAULT_LIGHT_SETTINGS = LightSettings()
 
 
 def brightness_at(
@@ -14,7 +36,7 @@ def brightness_at(
 ) -> float:
     """Return smoothstep brightness from 0 (dark) to 1 (fully illuminated).
 
-    Coordinates use the same character/line units as light-position state.
+    Coordinates use the same terminal-column/line units as light-position state.
     cell_aspect_ratio is cell height divided by cell width: 2.0 counts a row
     as two column units. The default 1.0 retains equal-axis distance for callers
     without cell geometry. Radius and ratio must be finite and positive.

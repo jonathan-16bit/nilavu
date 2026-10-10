@@ -3,7 +3,22 @@
 import math
 import unittest
 
-from nilavu.lighting import brightness_at
+from nilavu.lighting import LightSettings, brightness_at
+
+
+class LightSettingsTests(unittest.TestCase):
+    def test_defaults_preserve_existing_geometry(self):
+        settings = LightSettings()
+        self.assertEqual((settings.radius, settings.cell_aspect_ratio), (12.0, 2.0))
+
+    def test_invalid_geometry_and_overflowing_row_extent_are_rejected(self):
+        for value in (0.0, -1.0, math.nan, math.inf, -math.inf):
+            for settings in ((value, 2.0), (12.0, value)):
+                with self.subTest(settings=settings):
+                    with self.assertRaises(ValueError):
+                        LightSettings(*settings)
+        with self.assertRaisesRegex(ValueError, "divided"):
+            LightSettings(1e308, 1e-308)
 
 
 class BrightnessTests(unittest.TestCase):

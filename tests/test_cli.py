@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from nilavu.cli import main
+from nilavu.lighting import LightSettings
 
 
 class CliTests(unittest.TestCase):
@@ -35,7 +36,9 @@ class CliTests(unittest.TestCase):
 
     def test_loads_and_prepares_the_supplied_path_before_launch(self):
         self.assertEqual(main([str(self.path)]), 0)
-        self.app_factory.assert_called_once_with("    [bold]\n\\x1b[31m")
+        self.app_factory.assert_called_once_with(
+            "    [bold]\n\\x1b[31m", light_settings=LightSettings(12.0, 2.0)
+        )
         self.app_factory.return_value.run.assert_called_once_with()
         self.assertEqual(self.stdout.getvalue(), "")
         self.assertEqual(self.stderr.getvalue(), "")
@@ -52,6 +55,28 @@ class CliTests(unittest.TestCase):
                 self.assertIn(message, self.stderr.getvalue())
         self.app_factory.assert_not_called()
         self.assertEqual(self.stdout.getvalue(), "")
+
+    def test_geometry_options_reach_the_app(self):
+        self.assertEqual(main([
+            "--radius", "14.5", str(self.path), "--cell-aspect-ratio", "1.8"
+        ]), 0)
+        self.app_factory.assert_called_once_with(
+            "    [bold]\n\\x1b[31m", light_settings=LightSettings(14.5, 1.8)
+        )
+
+    def test_invalid_geometry_fails_before_loading_or_launch(self):
+        with patch("nilavu.cli.load_document") as loader:
+            for option in ("--radius", "--cell-aspect-ratio"):
+                for value in ("0", "-1", "nan", "inf", "-inf", "nope"):
+                    with self.subTest(option=option, value=value):
+                        with self.assertRaises(SystemExit) as exit_status:
+                            main([str(self.path), f"{option}={value}"])
+                        self.assertEqual(exit_status.exception.code, 2)
+            with self.assertRaises(SystemExit) as exit_status:
+                main([str(self.path), "--radius=1e308", "--cell-aspect-ratio=1e-308"])
+            self.assertEqual(exit_status.exception.code, 2)
+            loader.assert_not_called()
+        self.app_factory.assert_not_called()
 
     def test_rejects_redirected_input_or_output(self):
         for input_tty, output_tty in ((False, True), (True, False)):
@@ -70,6 +95,8 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_status.exception.code, 0)
         self.assertIn("usage: nilavu", self.stdout.getvalue())
         self.assertIn("Press q to quit", self.stdout.getvalue())
+        self.assertIn("--radius", self.stdout.getvalue())
+        self.assertIn("--cell-aspect-ratio", self.stdout.getvalue())
         self.assertEqual(self.stderr.getvalue(), "")
         self.app_factory.assert_not_called()
 

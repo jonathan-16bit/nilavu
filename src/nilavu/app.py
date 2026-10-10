@@ -2,6 +2,7 @@
 
 from textual.app import App, ComposeResult
 
+from nilavu.lighting import DEFAULT_LIGHT_SETTINGS, LightSettings
 from nilavu.navigation import LightPosition
 from nilavu.palette import DEFAULT_PALETTE
 from nilavu.source_view import SourceView
@@ -46,15 +47,20 @@ class NilavuApp(App[None], inherit_bindings=False):
     }}
     """
 
-    def __init__(self, source_text: str) -> None:
+    def __init__(
+        self, source_text: str, *, light_settings: LightSettings = DEFAULT_LIGHT_SETTINGS
+    ) -> None:
         # Prevent Textual from substituting RGB colors for the terminal palette.
         super().__init__(ansi_color=True)
         self._source_text = source_text
+        self.light_settings = light_settings
         self.light_position = LightPosition.from_text(source_text)
 
     def compose(self) -> ComposeResult:
         """Give Textual the single widget it should mount and draw."""
-        yield SourceView(self._source_text, self.light_position)
+        yield SourceView(
+            self._source_text, self.light_position, light_settings=self.light_settings
+        )
 
     def action_move_light(self, dx: int, dy: int) -> None:
         """Map an approved movement binding to state, then request a redraw."""

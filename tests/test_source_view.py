@@ -5,6 +5,7 @@ import unittest
 from rich.cells import cell_len
 
 from nilavu.app import NilavuApp
+from nilavu.lighting import LightSettings
 from nilavu.palette import DEFAULT_PALETTE, SHADE_LEVELS
 from nilavu.source_view import SourceView
 from nilavu.viewport import Viewport
@@ -29,6 +30,24 @@ def backgrounds(source: SourceView, row: int) -> list[tuple[int, int, int]]:
 
 
 class SourceViewTests(unittest.IsolatedAsyncioTestCase):
+    async def test_custom_geometry_drives_shading_scrolling_and_resize(self):
+        settings = LightSettings(radius=4.5, cell_aspect_ratio=1.5)
+        app = NilavuApp("\n".join(["a" * 50] * 30), light_settings=settings)
+        async with app.run_test(size=(40, 20)) as pilot:
+            source = app.query_one(SourceView)
+            self.assertIs(source.light_settings, settings)
+            self.assertEqual(backgrounds(source, 2)[0], backgrounds(source, 0)[3])
+            self.assertEqual(backgrounds(source, 0)[5], DEFAULT_PALETTE.background)
+            # The 4.5-column radius rounds to a five-column scrolling margin;
+            # its three-row extent comes from the supplied ratio, not a default.
+            app.action_move_light(35, 17)
+            await pilot.pause()
+            self.assertEqual(source.viewport, Viewport(1, 1))
+            self.assertEqual(backgrounds(source, 16)[34], DEFAULT_PALETTE.cursor_background)
+            await pilot.resize_terminal(30, 12)
+            self.assertEqual(source.viewport, Viewport(11, 9))
+            self.assertEqual(backgrounds(source, 8)[24], DEFAULT_PALETTE.cursor_background)
+
     async def test_cursor_covers_both_columns_of_wide_glyph_and_combining_base(self):
         app = NilavuApp("a界e\u0301z\nabcdef")
         async with app.run_test(size=(12, 4)) as pilot:
