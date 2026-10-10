@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nilavu"
+version = "0.1.0.dev0"
+description = "A terminal-native source viewer with an interactive light and shadow effect."
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
