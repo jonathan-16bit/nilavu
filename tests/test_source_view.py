@@ -26,6 +26,14 @@ def backgrounds(source: SourceView, row: int) -> list[tuple[int, int, int]]:
 
 
 class SourceViewTests(unittest.IsolatedAsyncioTestCase):
+    async def test_renderer_corrects_for_tall_terminal_cells(self):
+        app = NilavuApp("\n".join(["abcdefghijklmnopqrst"] * 10))
+        async with app.run_test(size=(25, 12)):
+            source = app.query_one(SourceView)
+            # Four columns and two rows represent the same visual distance at 2:1.
+            self.assertEqual(backgrounds(source, 0)[4], backgrounds(source, 2)[0])
+            self.assertEqual(backgrounds(source, 5)[0], DEFAULT_PALETTE.background)
+
     async def test_keys_move_the_light_and_clamp_at_document_edges(self):
         app = NilavuApp("abcdef\nx\n\nabcdef")
         async with app.run_test() as pilot:

@@ -52,3 +52,26 @@ class BrightnessTests(unittest.TestCase):
             with self.subTest(radius=radius):
                 with self.assertRaisesRegex(ValueError, "finite and positive"):
                     brightness_at(0, 0, 0, 0, radius)
+
+    def test_cell_aspect_ratio_matches_equal_physical_distances(self):
+        # Different positive ratios remain tunable: one row equals ratio columns.
+        for ratio in (0.5, 1.0, 2.0, 3.0):
+            with self.subTest(ratio=ratio):
+                vertical = brightness_at(4, 7, 4, 5, 10.0, cell_aspect_ratio=ratio)
+                horizontal = brightness_at(4 + int(2 * ratio), 5, 4, 5, 10.0)
+                self.assertEqual(vertical, horizontal)
+                self.assertEqual(
+                    vertical,
+                    brightness_at(4, 3, 4, 5, 10.0, cell_aspect_ratio=ratio),
+                )
+
+    def test_ratio_two_reaches_vertical_boundary_after_five_rows(self):
+        self.assertEqual(brightness_at(0, 5, 0, 0, 10.0, cell_aspect_ratio=2.0), 0.0)
+        self.assertGreater(brightness_at(0, 4, 0, 0, 10.0, cell_aspect_ratio=2.0), 0.0)
+        self.assertEqual(brightness_at(0, 0, 0, 0, 10.0, cell_aspect_ratio=2.0), 1.0)
+
+    def test_rejects_nonpositive_and_nonfinite_cell_ratios(self):
+        for ratio in (0.0, -1.0, math.inf, -math.inf, math.nan):
+            with self.subTest(ratio=ratio):
+                with self.assertRaisesRegex(ValueError, "Cell aspect ratio"):
+                    brightness_at(0, 0, 0, 0, 10.0, cell_aspect_ratio=ratio)

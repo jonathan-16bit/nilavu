@@ -9,6 +9,9 @@ from nilavu.palette import DEFAULT_PALETTE, Palette
 
 
 LIGHT_RADIUS = 10.0
+# Cell height / width. Keep this visual estimate explicit and easy to tune after
+# trying the light with different fonts; it is not a universal terminal constant.
+CELL_ASPECT_RATIO = 2.0
 
 
 class SourceView(Static):
@@ -41,7 +44,12 @@ class SourceView(Static):
         for y, line in enumerate(lines):
             for x, _ in enumerate(line):
                 intensity = brightness_at(
-                    x, y, self.light_position.x, self.light_position.y, LIGHT_RADIUS
+                    x,
+                    y,
+                    self.light_position.x,
+                    self.light_position.y,
+                    LIGHT_RADIUS,
+                    cell_aspect_ratio=CELL_ASPECT_RATIO,
                 )
                 style = self.palette.style_at(intensity)
                 # Apply the cursor last so it stays distinct from every shade.
