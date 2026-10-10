@@ -5,6 +5,8 @@ from pathlib import Path
 import stat
 import unicodedata
 
+from nilavu.cells import expand_tabs
+
 
 # Bound raw input before decoding so accidental huge files cannot exhaust memory.
 MAX_INPUT_BYTES = 1024 * 1024
@@ -55,8 +57,9 @@ def normalize_text(text: str) -> str:
         else:
             characters.append(character)
     # Expand after escaping so tabs align with the visible escape notation.
-    # These stops count text characters; terminal-cell widths belong to rendering.
-    return "".join(characters).expandtabs(TAB_WIDTH)
+    # Use the renderer's cell widths: a wide glyph takes two columns, while a
+    # combining mark shares its base column. Newlines reset the tab stops.
+    return expand_tabs("".join(characters), TAB_WIDTH)
 
 
 def load_document(path: str | Path) -> str:

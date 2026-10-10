@@ -20,6 +20,21 @@ class NormalizeTextTests(unittest.TestCase):
     def test_tabs_advance_to_four_column_stops_on_each_line(self):
         self.assertEqual(normalize_text("\tx\nx\ty\n1234\tz"), "    x\nx   y\n1234    z")
 
+    def test_tabs_align_after_wide_glyphs_and_combining_marks(self):
+        for text, expected in (
+            ("界\tX", "界  X"),
+            ("e\u0301\tX", "e\u0301   X"),
+            ("界界\tX", "界界    X"),
+            ("✈\ufe0f\tX", "✈\ufe0f  X"),
+            ("\u0301\tX", "\u0301   X"),
+            ("界\t\u0301X\tY\r\ne\u0301\tZ", "界  \u0301X   Y\ne\u0301   Z"),
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(normalize_text(text), expected)
+
+    def test_tabs_count_visible_control_escape_notation(self):
+        self.assertEqual(normalize_text("界\x1b\tX"), "界\\x1b  X")
+
     def test_escapes_terminal_sequences_and_non_newline_controls(self):
         # Exercise color changes and a clipboard-command sequence as inert text.
         text = "\x1b[31mred\x1b[0m\x1b]52;c;payload\x07\x08\x7f\x9b"

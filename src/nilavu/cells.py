@@ -10,6 +10,23 @@ def line_width(text: str) -> int:
     return cell_len(text) + int(bool(text) and get_character_cell_size(text[0]) == 0)
 
 
+def expand_tabs(text: str, tab_width: int) -> str:
+    """Expand tabs to terminal-column stops, resetting at each newline."""
+    lines = []
+    for line in text.split("\n"):
+        pieces = line.split("\t")
+        parts = [pieces[0]]
+        column = line_width(pieces[0])
+        for piece in pieces[1:]:
+            spaces = tab_width - column % tab_width
+            parts.extend((" " * spaces, piece))
+            # Each piece is measured once. Measuring the entire accumulated line
+            # at every tab would make tab-heavy files increasingly expensive.
+            column += spaces + cell_len(piece)
+        lines.append("".join(parts))
+    return "\n".join(lines)
+
+
 def visible_cells(text: str, start: int, width: int) -> Iterator[tuple[int, str, int]]:
     """Yield (document column, text, cell width) for a padded visible row.
 

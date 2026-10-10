@@ -62,14 +62,13 @@ See all options with `.venv/bin/nilavu --help`. You can also launch with
   network access or subprocess execution.
 - Accepts regular UTF-8 files up to 1 MiB. Invalid UTF-8 and NUL-containing files
   are rejected.
-- Normalizes line endings, expands tabs at four-character stops, and displays
+- Normalizes line endings, expands tabs at four-column stops, and displays
   terminal controls and invisible formatting characters as escape notation.
   File contents are displayed as literal text, never interpreted as markup.
 - Navigation counts terminal columns. Wide glyphs receive one style across both
   columns, and combining marks stay with their base glyph. Partial wide glyphs
   at viewport edges become spaces until the full glyph is visible. Actual glyph
-  widths can vary between terminal fonts; tab expansion still counts text
-  characters rather than terminal columns.
+  widths can vary between terminal fonts.
 - Uses one fixed palette. There is no syntax highlighting, file editing, saved
   configuration, or settings UI. CLI settings apply to the current launch only.
 
