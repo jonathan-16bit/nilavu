@@ -9,6 +9,7 @@ from textual.widgets import Static
 
 from nilavu.app import NilavuApp
 from nilavu.document import load_document
+from nilavu.palette import DEFAULT_PALETTE
 
 
 class NilavuAppTests(unittest.IsolatedAsyncioTestCase):
@@ -25,11 +26,10 @@ class NilavuAppTests(unittest.IsolatedAsyncioTestCase):
                     source.render_line(0).text.rstrip(), "    [bold]நிலவு[/bold]"
                 )
                 self.assertEqual(source.render_line(1).text.rstrip(), r"\x1b[31mtext")
-                # Check the emitted style, not just CSS: terminal defaults must
-                # survive Textual's rendering pipeline rather than become RGB.
+                # The approved palette must survive the rendering pipeline.
                 style = next(iter(source.render_line(0))).style
-                self.assertTrue(style.color.is_default)
-                self.assertTrue(style.bgcolor.is_default)
+                self.assertEqual(style.color.triplet, DEFAULT_PALETTE.foreground)
+                self.assertEqual(style.bgcolor.triplet, DEFAULT_PALETTE.background)
 
     async def test_empty_document_starts_with_a_blank_screen(self):
         app = NilavuApp("")

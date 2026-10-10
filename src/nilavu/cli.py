@@ -28,7 +28,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     parser = _SafeArgumentParser(
         prog="nilavu",
-        description="View a local source file in the current terminal. Press q to quit.",
+        description=(
+            "View a local source file through a movable light. "
+            "Move with hjkl or arrow keys. Press q to quit."
+        ),
     )
     # Newer Python versions can color help. Keep help plain before sanitizing it;
     # setting this attribute is harmless on older versions without colored help.
