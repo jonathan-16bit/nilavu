@@ -2,12 +2,14 @@
 
 from dataclasses import dataclass
 
+from nilavu.cells import line_width
+
 
 @dataclass(frozen=True)
 class LightPosition:
     """A zero-based position inside the document's rectangular bounds.
 
-    x counts Python text characters, not terminal cells; y counts source lines.
+    x counts terminal columns; y counts source lines.
     max_x and max_y are inclusive bounds computed from prepared source text.
     The rectangle includes empty space beside short lines, allowing vertical
     movement to preserve the column. Empty documents still contain (0, 0).
@@ -31,9 +33,9 @@ class LightPosition:
         # Split only on the normalized newline, preserving blank lines and the
         # blank final row after a trailing newline. Empty text gives one row.
         lines = source_text.split("\n")
-        # A line of length n has character positions 0 through n - 1. Reserve
+        # A line of width n has cell positions 0 through n - 1. Reserve
         # position zero even when every line is empty.
-        max_x = max(0, max(len(line) for line in lines) - 1)
+        max_x = max(0, max(line_width(line) for line in lines) - 1)
         return cls(max_x=max_x, max_y=len(lines) - 1)
 
     def move(self, dx: int, dy: int) -> "LightPosition":

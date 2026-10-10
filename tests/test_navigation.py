@@ -64,11 +64,17 @@ class LightPositionTests(unittest.TestCase):
                 self.assertEqual(position.max_y, max_y)
                 self.assertEqual(position.move(0, 100).y, max_y)
 
-    def test_bounds_use_prepared_text_and_character_coordinates(self):
+    def test_bounds_use_prepared_text_and_terminal_columns(self):
         position = LightPosition.from_text(normalize_text("\t界e\u0301\r\n"))
-        # Four expanded spaces + a wide glyph + e + a combining mark = seven
-        # Python characters. Converting this to terminal-cell widths is deferred.
+        # Four spaces + two columns for the wide glyph + one for accented e.
         self.assertEqual((position.max_x, position.max_y), (6, 1))
+
+    def test_wide_glyphs_and_combining_marks_have_different_bounds(self):
+        for text, last in (("界界", 3), ("e\u0301e\u0301", 1), ("\u0301", 0)):
+            with self.subTest(text=text):
+                position = LightPosition.from_text(text)
+                self.assertEqual(position.max_x, last)
+                self.assertEqual(position.move(100, 0).x, last)
 
     def test_rejects_invalid_bounds_and_initial_positions(self):
         for max_x, max_y, x, y in (

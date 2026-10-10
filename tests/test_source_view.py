@@ -2,6 +2,8 @@
 
 import unittest
 
+from rich.cells import cell_len
+
 from nilavu.app import NilavuApp
 from nilavu.palette import DEFAULT_PALETTE, SHADE_LEVELS
 from nilavu.source_view import SourceView
@@ -9,24 +11,59 @@ from nilavu.viewport import Viewport
 
 
 def foregrounds(source: SourceView, row: int) -> list[tuple[int, int, int]]:
-    """Expand rendered ASCII segments into a foreground color per character."""
+    """Expand rendered segments into a foreground color per terminal cell."""
     return [
         segment.style.color.triplet
         for segment in source.render_line(row)
-        for _ in segment.text
+        for _ in range(cell_len(segment.text))
     ]
 
 
 def backgrounds(source: SourceView, row: int) -> list[tuple[int, int, int]]:
-    """Expand rendered ASCII segments into a background color per cell."""
+    """Expand rendered segments into a background color per terminal cell."""
     return [
         segment.style.bgcolor.triplet
         for segment in source.render_line(row)
-        for _ in segment.text
+        for _ in range(cell_len(segment.text))
     ]
 
 
 class SourceViewTests(unittest.IsolatedAsyncioTestCase):
+    async def test_cursor_covers_both_columns_of_wide_glyph_and_combining_base(self):
+        app = NilavuApp("a界e\u0301z\nabcdef")
+        async with app.run_test(size=(12, 4)) as pilot:
+            source = app.query_one(SourceView)
+            self.assertEqual(source.render_line(0).text.rstrip(), "a界e\u0301z")
+            self.assertEqual(cell_len(source.render_line(0).text), 12)
+            await pilot.press("right")
+            self.assertEqual(backgrounds(source, 0)[1:3],
+                             [DEFAULT_PALETTE.cursor_background] * 2)
+            await pilot.press("right")
+            self.assertEqual(backgrounds(source, 0)[1:3],
+                             [DEFAULT_PALETTE.cursor_background] * 2)
+            await pilot.press("right")
+            self.assertEqual(backgrounds(source, 0)[3], DEFAULT_PALETTE.cursor_background)
+            self.assertEqual(source.render_line(0).text.rstrip(), "a界e\u0301z")
+            await pilot.press("down")
+            self.assertEqual(backgrounds(source, 1)[3], DEFAULT_PALETTE.cursor_background)
+
+    async def test_horizontal_scroll_clips_wide_glyph_without_shifting_following_text(self):
+        app = NilavuApp("a界bcdefghijklmnop\nabcdefghijklmnopqr")
+        async with app.run_test(size=(4, 3)) as pilot:
+            source = app.query_one(SourceView)
+            await pilot.press(*(["right"] * 4))
+            self.assertEqual(source.viewport.x, 2)
+            self.assertEqual(source.render_line(0).text, " bcd")
+            self.assertEqual(cell_len(source.render_line(0).text), 4)
+            self.assertEqual(backgrounds(source, 0)[2], DEFAULT_PALETTE.cursor_background)
+            await pilot.press("left")
+            self.assertEqual(source.viewport.x, 2)
+            await pilot.press("left")
+            self.assertEqual(source.viewport.x, 1)
+            self.assertEqual(source.render_line(0).text, "界bc")
+            self.assertEqual(backgrounds(source, 0)[:2],
+                             [DEFAULT_PALETTE.cursor_background] * 2)
+
     async def test_scrolling_uses_full_light_radius_when_screen_has_room(self):
         lines = [f"{row:02}" + "abcdefghijklmnopqrstuvwxyz" * 2 for row in range(40)]
         app = NilavuApp("\n".join(lines))

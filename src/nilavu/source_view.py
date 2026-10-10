@@ -6,6 +6,7 @@ from textual.content import Content, Span
 from textual.events import Resize
 from textual.widgets import Static
 
+from nilavu.cells import visible_cells
 from nilavu.lighting import brightness_at
 from nilavu.navigation import LightPosition
 from nilavu.palette import DEFAULT_PALETTE, Palette
@@ -62,19 +63,15 @@ class SourceView(Static):
         """Return source characters with stepped cell shading and a cursor."""
         # Pad the visible rectangle with spaces, as a terminal already does.
         # Styling those cells makes the light and cursor visible on blank lines.
-        lines = [
-            (self._lines[y] if y < len(self._lines) else "")
-            [self.viewport.x : self.viewport.x + self.size.width].ljust(self.size.width)
-            for y in range(self.viewport.y, self.viewport.y + self.size.height)
-        ]
+        lines = []
         spans = []
         offset = 0
-        for y, line in enumerate(lines):
-            for x, _ in enumerate(line):
-                # Screen positions change while scrolling; light and source
-                # positions stay in document space so their shading stays aligned.
-                document_x = x + self.viewport.x
-                document_y = y + self.viewport.y
+        for document_y in range(self.viewport.y, self.viewport.y + self.size.height):
+            text = self._lines[document_y] if document_y < len(self._lines) else ""
+            parts = []
+            for document_x, glyph, cells in visible_cells(
+                text, self.viewport.x, self.size.width
+            ):
                 intensity = brightness_at(
                     document_x,
                     document_y,
@@ -86,14 +83,18 @@ class SourceView(Static):
                 style = self.palette.style_at(intensity)
                 # Apply the cursor last so it stays distinct from every shade.
                 # The original character (including a space) stays underneath.
-                if (document_x, document_y) == (self.light_position.x, self.light_position.y):
+                if (
+                    document_y == self.light_position.y
+                    and document_x <= self.light_position.x < document_x + cells
+                ):
                     style = self.palette.cursor_style()
-                # A span styles one character in the combined text. Newlines
-                # occupy a string position too, so each row advances by len + 1.
-                spans.append(Span(offset + x, offset + x + 1, style))
-            offset += len(line) + 1
+                # Styles use string indices, while lighting uses terminal columns.
+                # Keep combining marks in the same span as their base glyph.
+                spans.append(Span(offset, offset + len(glyph), style))
+                offset += len(glyph)
+                parts.append(glyph)
+            lines.append("".join(parts))
+            offset += 1  # The newline also occupies a string index.
         # Content receives literal text, not parsed markup. Dark characters remain
         # source characters; their foreground matches the approved background.
-        # Coordinates still count Python characters; terminal-cell width handling
-        # for wide/combining Unicode is a separate concern from this light layer.
         return Content("\n".join(lines), spans=spans)
