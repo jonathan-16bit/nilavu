@@ -1,6 +1,7 @@
 """Behavior checks for file loading and terminal-safe text preparation."""
 
 from pathlib import Path
+import os
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -73,7 +74,7 @@ class LoadDocumentTests(unittest.TestCase):
         # Simulate a pipe without creating or opening a potentially blocking one.
         with (
             patch.object(Path, "stat") as file_stat,
-            patch.object(Path, "open") as file_open,
+            patch("nilavu.document.os.open") as file_open,
         ):
             file_stat.return_value.st_mode = 0o010000  # FIFO file type.
             with self.assertRaisesRegex(DocumentError, "regular file"):
@@ -89,7 +90,7 @@ class LoadDocumentTests(unittest.TestCase):
             (OSError(), "could not be read"),
         ):
             with self.subTest(error=type(error).__name__):
-                with patch.object(Path, "open", side_effect=error):
+                with patch("nilavu.document.os.open", side_effect=error):
                     with self.assertRaisesRegex(DocumentError, message):
                         load_document(self.path)
 
@@ -99,10 +100,46 @@ class LoadDocumentTests(unittest.TestCase):
 
     def test_rejects_oversized_file_before_opening(self):
         self.path.write_bytes(b"a" * (MAX_INPUT_BYTES + 1))
-        with patch.object(Path, "open") as file_open:
+        with patch("nilavu.document.os.open") as file_open:
             with self.assertRaisesRegex(DocumentError, "size limit"):
                 load_document(self.path)
             file_open.assert_not_called()
+
+    @unittest.skipUnless(
+        hasattr(os, "mkfifo") and hasattr(os, "O_NONBLOCK"),
+        "requires named pipes and non-blocking open",
+    )
+    def test_rejects_fifo_swapped_after_stat_without_blocking_and_closes_descriptor(self):
+        self.path.write_bytes(b"text")
+        fifo = Path(self.directory.name) / "fifo"
+        os.mkfifo(fifo)
+        original_stat = Path.stat
+        original_open = os.open
+        descriptors = []
+
+        def swap_after_stat(path, *args, **kwargs):
+            info = original_stat(path, *args, **kwargs)
+            if path == self.path:
+                os.replace(fifo, self.path)
+            return info
+
+        def guarded_open(path, flags, *args, **kwargs):
+            # Fail before touching the FIFO if a regression removes the flag;
+            # this keeps the test deterministic instead of hanging the suite.
+            self.assertTrue(flags & os.O_NONBLOCK)
+            descriptor = original_open(path, flags, *args, **kwargs)
+            descriptors.append(descriptor)
+            return descriptor
+
+        with (
+            patch.object(Path, "stat", swap_after_stat),
+            patch("nilavu.document.os.open", guarded_open),
+        ):
+            with self.assertRaisesRegex(DocumentError, "regular file"):
+                load_document(self.path)
+        self.assertEqual(len(descriptors), 1)
+        with self.assertRaises(OSError):
+            os.fstat(descriptors[0])
 
     def test_bounded_read_rejects_growth_after_stat(self):
         self.path.write_bytes(b"a" * (MAX_INPUT_BYTES + 2))

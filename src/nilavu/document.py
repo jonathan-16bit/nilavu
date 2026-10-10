@@ -15,6 +15,16 @@ class DocumentError(ValueError):
     """A predictable loading failure that a future CLI can report to the user."""
 
 
+def _nonblocking_opener(path: str, flags: int) -> int:
+    """Open without waiting for a FIFO writer on platforms with O_NONBLOCK."""
+    # The path can change after stat. Non-blocking open lets us reject a swapped
+    # FIFO with fstat before reading it. Regular-file reads remain unchanged.
+    # O_NOCTTY also prevents a swapped terminal device becoming our controlling
+    # terminal. Missing flags contribute zero on platforms without these APIs.
+    flags |= getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOCTTY", 0)
+    return os.open(path, flags)
+
+
 def normalize_text(text: str) -> str:
     """Normalize newlines, escape controls, and expand four-column tabs.
 
@@ -68,7 +78,9 @@ def load_document(path: str | Path) -> str:
             raise DocumentError("Input exceeds the 1 MiB size limit.")
 
         # Binary mode leaves decoding and newline policy under our control.
-        with path.open("rb") as source:
+        # open owns the descriptor returned by our opener and closes it even
+        # when the post-open validation rejects a changed file type.
+        with open(path, "rb", opener=_nonblocking_opener) as source:
             # Inspect the opened file too: the path may have changed since stat.
             if not stat.S_ISREG(os.fstat(source.fileno()).st_mode):
                 raise DocumentError("Input must be a regular file.")
