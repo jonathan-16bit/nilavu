@@ -1,6 +1,7 @@
 """Display prepared source text inside the current terminal."""
 
 from textual.app import App, ComposeResult
+from textual.containers import Container
 
 from nilavu.lighting import DEFAULT_LIGHT_SETTINGS, LightSettings
 from nilavu.navigation import LightPosition
@@ -36,6 +37,13 @@ class NilavuApp(App[None], inherit_bindings=False):
         overflow: hidden;
     }}
 
+    #frame {{
+        width: 1fr;
+        height: 1fr;
+        background: ansi_default;
+        border: solid ansi_default;
+    }}
+
     #source {{
         width: 1fr;
         height: 1fr;
@@ -57,10 +65,15 @@ class NilavuApp(App[None], inherit_bindings=False):
         self.light_position = LightPosition.from_text(source_text)
 
     def compose(self) -> ComposeResult:
-        """Give Textual the single widget it should mount and draw."""
-        yield SourceView(
-            self._source_text, self.light_position, light_settings=self.light_settings
-        )
+        """Mount the source view inside a terminal-colored frame."""
+        # A separate frame lets Textual reserve the border's cells. SourceView
+        # receives only the interior size, so its coordinates and scroll margins
+        # need no special border offsets. ansi_default uses the terminal's own
+        # foreground/background pair rather than guessing contrasting RGB values.
+        with Container(id="frame"):
+            yield SourceView(
+                self._source_text, self.light_position, light_settings=self.light_settings
+            )
 
     def action_move_light(self, dx: int, dy: int) -> None:
         """Map an approved movement binding to state, then request a redraw."""

@@ -33,7 +33,7 @@ class SourceViewTests(unittest.IsolatedAsyncioTestCase):
     async def test_custom_geometry_drives_shading_scrolling_and_resize(self):
         settings = LightSettings(radius=4.5, cell_aspect_ratio=1.5)
         app = NilavuApp("\n".join(["a" * 50] * 30), light_settings=settings)
-        async with app.run_test(size=(40, 20)) as pilot:
+        async with app.run_test(size=(42, 22)) as pilot:
             source = app.query_one(SourceView)
             self.assertIs(source.light_settings, settings)
             self.assertEqual(backgrounds(source, 2)[0], backgrounds(source, 0)[3])
@@ -44,13 +44,13 @@ class SourceViewTests(unittest.IsolatedAsyncioTestCase):
             await pilot.pause()
             self.assertEqual(source.viewport, Viewport(1, 1))
             self.assertEqual(backgrounds(source, 16)[34], DEFAULT_PALETTE.cursor_background)
-            await pilot.resize_terminal(30, 12)
+            await pilot.resize_terminal(32, 14)
             self.assertEqual(source.viewport, Viewport(11, 9))
             self.assertEqual(backgrounds(source, 8)[24], DEFAULT_PALETTE.cursor_background)
 
     async def test_cursor_covers_both_columns_of_wide_glyph_and_combining_base(self):
         app = NilavuApp("a界e\u0301z\nabcdef")
-        async with app.run_test(size=(12, 4)) as pilot:
+        async with app.run_test(size=(14, 6)) as pilot:
             source = app.query_one(SourceView)
             self.assertEqual(source.render_line(0).text.rstrip(), "a界e\u0301z")
             self.assertEqual(cell_len(source.render_line(0).text), 12)
@@ -68,7 +68,7 @@ class SourceViewTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_horizontal_scroll_clips_wide_glyph_without_shifting_following_text(self):
         app = NilavuApp("a界bcdefghijklmnop\nabcdefghijklmnopqr")
-        async with app.run_test(size=(4, 3)) as pilot:
+        async with app.run_test(size=(6, 5)) as pilot:
             source = app.query_one(SourceView)
             await pilot.press(*(["right"] * 4))
             self.assertEqual(source.viewport.x, 2)
@@ -86,7 +86,7 @@ class SourceViewTests(unittest.IsolatedAsyncioTestCase):
     async def test_scrolling_uses_full_light_radius_when_screen_has_room(self):
         lines = [f"{row:02}" + "abcdefghijklmnopqrstuvwxyz" * 2 for row in range(40)]
         app = NilavuApp("\n".join(lines))
-        async with app.run_test(size=(30, 16)) as pilot:
+        async with app.run_test(size=(32, 18)) as pilot:
             source = app.query_one(SourceView)
             await pilot.press(*(["right"] * 17 + ["down"] * 9))
             self.assertEqual(source.viewport, Viewport())
@@ -99,7 +99,7 @@ class SourceViewTests(unittest.IsolatedAsyncioTestCase):
     async def test_scrolling_keeps_source_cursor_and_light_aligned(self):
         lines = [f"{row:02}abcdefghijklmnop" for row in range(10)]
         app = NilavuApp("\n".join(lines))
-        async with app.run_test(size=(8, 4)) as pilot:
+        async with app.run_test(size=(10, 6)) as pilot:
             source = app.query_one(SourceView)
             await pilot.press(*(["right"] * 9 + ["down"] * 5))
             # Small screens reduce the radius margins instead of losing the cursor.
@@ -121,20 +121,20 @@ class SourceViewTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_resize_follows_light_without_changing_document_position(self):
         app = NilavuApp("\n".join(["abcdefghijklmnopqrst"] * 10))
-        async with app.run_test(size=(12, 6)) as pilot:
+        async with app.run_test(size=(14, 8)) as pilot:
             source = app.query_one(SourceView)
             await pilot.press(*(["right"] * 9 + ["down"] * 5))
-            await pilot.resize_terminal(5, 3)
+            await pilot.resize_terminal(7, 5)
             self.assertEqual((app.light_position.x, app.light_position.y), (9, 5))
             self.assertEqual(source.viewport, Viewport(7, 4))
             self.assertEqual(backgrounds(source, 1)[2], DEFAULT_PALETTE.cursor_background)
-            await pilot.resize_terminal(25, 12)
+            await pilot.resize_terminal(27, 14)
             self.assertEqual(source.viewport, Viewport())
             self.assertEqual(backgrounds(source, 5)[9], DEFAULT_PALETTE.cursor_background)
 
     async def test_renderer_corrects_for_tall_terminal_cells(self):
         app = NilavuApp("\n".join(["abcdefghijklmnopqrst"] * 10))
-        async with app.run_test(size=(25, 12)):
+        async with app.run_test(size=(27, 14)):
             source = app.query_one(SourceView)
             # Four columns and two rows represent the same visual distance at 2:1.
             self.assertEqual(backgrounds(source, 0)[4], backgrounds(source, 2)[0])
@@ -160,7 +160,7 @@ class SourceViewTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_five_cell_shades_reach_darkness_at_radius_twelve(self):
         app = NilavuApp("abcdefghijklmnopqrst")
-        async with app.run_test(size=(25, 4)):
+        async with app.run_test(size=(27, 6)):
             source = app.query_one(SourceView)
             colors = foregrounds(source, 0)
             self.assertEqual(colors[1], DEFAULT_PALETTE.foreground)
@@ -178,7 +178,7 @@ class SourceViewTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_movement_relights_the_source_without_replacing_characters(self):
         app = NilavuApp("abcdefghijklmnopqrst\nABCDEFGHIJKLMNOPQRST")
-        async with app.run_test(size=(25, 4)) as pilot:
+        async with app.run_test(size=(27, 6)) as pilot:
             source = app.query_one(SourceView)
             before = foregrounds(source, 0)
             await pilot.press("l", "right", "l", "down")
@@ -201,7 +201,7 @@ class SourceViewTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_cursor_and_shading_remain_visible_on_short_and_blank_lines(self):
         app = NilavuApp("abcdef\nx\n\nabcdef")
-        async with app.run_test(size=(12, 5)) as pilot:
+        async with app.run_test(size=(14, 7)) as pilot:
             await pilot.press("right", "right", "right", "right", "right", "down")
             source = app.query_one(SourceView)
             self.assertEqual(source.render_line(1).text.rstrip(), "x")

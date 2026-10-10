@@ -3,7 +3,8 @@
 Nilavu is a terminal source viewer with a movable light. Nearby text and cells
 brighten through five shading levels, while distant text fades into darkness.
 Source stays real terminal text, with a visible cursor and scrolling that follows
-the illuminated area.
+the illuminated area. A thin border uses your terminal's default foreground and
+background colors and resizes with the window, reserving one cell on each edge.
 
 This is an early development version.
 
