@@ -52,11 +52,14 @@ Choose a coordinated text, cell-background, darkness, and cursor palette:
 
 ```bash
 .venv/bin/nilavu pyproject.toml --theme moonlight
-.venv/bin/nilavu pyproject.toml --theme ember --radius 14
+.venv/bin/nilavu pyproject.toml --theme forest --seed fern --radius 14
 ```
 
-`--theme` accepts `green` (the default), `moonlight` (cool blue), or `ember`
-(warm orange). Each keeps the same five shading levels and movement behavior;
+`--theme` accepts `moonlight` (the default, cool blue) or `forest` (seeded greens
+with a gold cursor). Forest generates one coordinated palette for the whole
+view. `--seed` accepts text and defaults to `moss`: the same seed repeats the same
+colors, while different seeds vary them within forest color ranges. It is ignored
+for moonlight. Both themes keep the same five shading levels and movement;
 the border continues to use your terminal's colors.
 
 Radius and aspect ratio accept finite positive numbers, including decimals.
@@ -80,9 +83,9 @@ See all options with `.venv/bin/nilavu --help`. You can also launch with
   columns, and combining marks stay with their base glyph. Partial wide glyphs
   at viewport edges become spaces until the full glyph is visible. Actual glyph
   widths can vary between terminal fonts.
-- Provides three preset palettes. There are no procedural/custom colors, syntax
-  highlighting, file editing, saved configuration, or settings UI. CLI settings
-  apply to the current launch only.
+- Provides a fixed moonlight palette and a seeded forest palette. There is no
+  scenery or map generation, syntax highlighting, file editing, saved
+  configuration, or settings UI. CLI settings apply to the current launch only.
 
 ## Tests
 

@@ -1,6 +1,8 @@
-"""Coordinated palette presets, separate from light intensity calculations."""
+"""Coordinated fixed and seeded palettes, separate from light intensity calculations."""
 
+from colorsys import hls_to_rgb
 from dataclasses import dataclass
+from hashlib import sha256
 
 
 SHADE_LEVELS = 5
@@ -20,10 +22,10 @@ def _blend(
 class Palette:
     """Coordinated source, cell, and cursor colors as RGB channels."""
 
-    background: tuple[int, int, int] = (16, 16, 20)  # #101014
-    foreground: tuple[int, int, int] = (190, 212, 146)  # Muted warm green.
-    cell_background: tuple[int, int, int] = (48, 58, 42)
-    cursor_background: tuple[int, int, int] = (213, 174, 102)  # Amber.
+    background: tuple[int, int, int] = (12, 16, 26)  # Moonlight darkness.
+    foreground: tuple[int, int, int] = (184, 211, 235)  # Pale blue text.
+    cell_background: tuple[int, int, int] = (37, 49, 66)
+    cursor_background: tuple[int, int, int] = (170, 192, 240)  # Lavender cursor.
 
     def color_at(self, brightness: float) -> str:
         """Blend toward the background for an intensity from 0 through 1."""
@@ -47,22 +49,38 @@ class Palette:
 
 
 DEFAULT_PALETTE = Palette()
-DEFAULT_THEME = "green"
+DEFAULT_THEME = "moonlight"
+DEFAULT_SEED = "moss"
+THEMES = ("moonlight", "forest")
 
-# Each preset supplies the same four roles. Rendering never needs to know which
-# theme was chosen; every preset uses the same light curve and five shade levels.
-PALETTES = {
-    DEFAULT_THEME: DEFAULT_PALETTE,
-    "moonlight": Palette(
-        background=(12, 16, 26),
-        foreground=(184, 211, 235),
-        cell_background=(37, 49, 66),
-        cursor_background=(170, 192, 240),
-    ),
-    "ember": Palette(
-        background=(24, 14, 12),
-        foreground=(238, 190, 139),
-        cell_background=(67, 40, 30),
-        cursor_background=(246, 209, 113),
-    ),
-}
+
+def _rgb(hue: float, lightness: float, saturation: float) -> tuple[int, int, int]:
+    """Convert a coordinated hue/lightness/saturation color into RGB channels."""
+    red, green, blue = hls_to_rgb(hue / 360, lightness, saturation)
+    return round(red * 255), round(green * 255), round(blue * 255)
+
+
+def forest_palette(seed: str = DEFAULT_SEED) -> Palette:
+    """Generate one repeatable forest palette, independent of source or position."""
+    # Python's built-in hash changes between processes. SHA-256 gives the same
+    # bytes on every launch; surrogatepass also accepts unusual shell arguments.
+    values = sha256(seed.encode("utf-8", errors="surrogatepass")).digest()
+    hue = 90 + 40 * values[0] / 255
+    saturation = 0.25 + 0.15 * values[1] / 255
+    # All green roles share a hue. Narrow lightness ranges keep lit text pale
+    # against moss cells; the contrasting gold cursor stays easy to locate.
+    return Palette(
+        background=_rgb(hue, 0.05 + 0.025 * values[2] / 255, saturation),
+        foreground=_rgb(hue, 0.78 + 0.06 * values[3] / 255, saturation),
+        cell_background=_rgb(hue, 0.16 + 0.04 * values[4] / 255, saturation),
+        cursor_background=_rgb(38 + 16 * values[5] / 255, 0.68, 0.65),
+    )
+
+
+def palette_for(theme: str, seed: str = DEFAULT_SEED) -> Palette:
+    """Resolve a theme once at startup; renderers only receive its color roles."""
+    if theme == "moonlight":
+        return DEFAULT_PALETTE
+    if theme == "forest":
+        return forest_palette(seed)
+    raise ValueError(f"Unknown theme: {theme}")

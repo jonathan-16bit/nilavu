@@ -10,13 +10,14 @@ from textual.widgets import Static
 
 from nilavu.app import NilavuApp
 from nilavu.document import load_document
-from nilavu.palette import DEFAULT_PALETTE, PALETTES
+from nilavu.palette import DEFAULT_PALETTE, THEMES, palette_for
 from nilavu.source_view import SourceView
 
 
 class NilavuAppTests(unittest.IsolatedAsyncioTestCase):
     async def test_each_palette_colors_screen_cells_and_cursor_after_scroll_and_resize(self):
-        for name, palette in PALETTES.items():
+        for name in THEMES:
+            palette = palette_for(name)
             with self.subTest(theme=name):
                 app = NilavuApp("\n".join(["a" * 60] * 30), palette=palette)
                 async with app.run_test(size=(42, 12)) as pilot:

@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 
 from nilavu.cli import main
 from nilavu.lighting import LightSettings
-from nilavu.palette import DEFAULT_PALETTE, PALETTES
+from nilavu.palette import DEFAULT_PALETTE, THEMES, palette_for
 
 
 class CliTests(unittest.TestCase):
@@ -68,7 +68,8 @@ class CliTests(unittest.TestCase):
         )
 
     def test_each_theme_reaches_the_app_with_custom_geometry(self):
-        for name, palette in PALETTES.items():
+        for name in THEMES:
+            palette = palette_for(name)
             with self.subTest(theme=name):
                 self.app_factory.reset_mock()
                 self.assertEqual(main([
@@ -79,14 +80,24 @@ class CliTests(unittest.TestCase):
                     palette=palette,
                 )
 
-    def test_unknown_theme_is_rejected_before_loading_or_launch(self):
+    def test_unknown_and_removed_themes_are_rejected_before_loading_or_launch(self):
         with patch("nilavu.cli.load_document") as loader:
-            with self.assertRaises(SystemExit) as exit_status:
-                main([str(self.path), "--theme", "unknown"])
-            self.assertEqual(exit_status.exception.code, 2)
+            for theme in ("unknown", "green", "ember"):
+                with self.subTest(theme=theme):
+                    with self.assertRaises(SystemExit) as exit_status:
+                        main([str(self.path), "--theme", theme])
+                    self.assertEqual(exit_status.exception.code, 2)
             loader.assert_not_called()
         self.app_factory.assert_not_called()
         self.assertIn("invalid choice", self.stderr.getvalue())
+
+    def test_custom_seed_reaches_forest_and_does_not_change_moonlight(self):
+        for theme in THEMES:
+            with self.subTest(theme=theme):
+                self.app_factory.reset_mock()
+                self.assertEqual(main([str(self.path), "--theme", theme, "--seed", "fern"]), 0)
+                self.assertEqual(self.app_factory.call_args.kwargs["palette"],
+                                 palette_for(theme, "fern"))
 
     def test_invalid_geometry_fails_before_loading_or_launch(self):
         with patch("nilavu.cli.load_document") as loader:
@@ -122,6 +133,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("--radius", self.stdout.getvalue())
         self.assertIn("--cell-aspect-ratio", self.stdout.getvalue())
         self.assertIn("--theme", self.stdout.getvalue())
+        self.assertIn("--seed", self.stdout.getvalue())
         self.assertEqual(self.stderr.getvalue(), "")
         self.app_factory.assert_not_called()
 
