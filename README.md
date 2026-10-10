@@ -48,8 +48,19 @@ Adjust the light when launching:
 | `--radius` | `12` | Reach in terminal column-width units. Larger values expand the light. |
 | `--cell-aspect-ratio` | `2` | Cell height divided by width. Larger values compress the vertical reach. |
 
-Both options accept finite positive numbers, including decimals. Lighting and
-scrolling use the same settings. Scrolling margins shrink on small screens;
+Choose a coordinated text, cell-background, darkness, and cursor palette:
+
+```bash
+.venv/bin/nilavu pyproject.toml --theme moonlight
+.venv/bin/nilavu pyproject.toml --theme ember --radius 14
+```
+
+`--theme` accepts `green` (the default), `moonlight` (cool blue), or `ember`
+(warm orange). Each keeps the same five shading levels and movement behavior;
+the border continues to use your terminal's colors.
+
+Radius and aspect ratio accept finite positive numbers, including decimals.
+Lighting and scrolling use the same settings. Scrolling margins shrink on small screens;
 document boundaries can still clip the light. Tune the aspect ratio to suit your
 terminal font rather than assuming every terminal has the same cell shape.
 
@@ -69,8 +80,9 @@ See all options with `.venv/bin/nilavu --help`. You can also launch with
   columns, and combining marks stay with their base glyph. Partial wide glyphs
   at viewport edges become spaces until the full glyph is visible. Actual glyph
   widths can vary between terminal fonts.
-- Uses one fixed palette. There is no syntax highlighting, file editing, saved
-  configuration, or settings UI. CLI settings apply to the current launch only.
+- Provides three preset palettes. There are no procedural/custom colors, syntax
+  highlighting, file editing, saved configuration, or settings UI. CLI settings
+  apply to the current launch only.
 
 ## Tests
 

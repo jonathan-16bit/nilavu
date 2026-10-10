@@ -10,11 +10,42 @@ from textual.widgets import Static
 
 from nilavu.app import NilavuApp
 from nilavu.document import load_document
-from nilavu.palette import DEFAULT_PALETTE
+from nilavu.palette import DEFAULT_PALETTE, PALETTES
 from nilavu.source_view import SourceView
 
 
 class NilavuAppTests(unittest.IsolatedAsyncioTestCase):
+    async def test_each_palette_colors_screen_cells_and_cursor_after_scroll_and_resize(self):
+        for name, palette in PALETTES.items():
+            with self.subTest(theme=name):
+                app = NilavuApp("\n".join(["a" * 60] * 30), palette=palette)
+                async with app.run_test(size=(42, 12)) as pilot:
+                    source = app.query_one(SourceView)
+                    self.assertIs(source.palette, palette)
+                    self.assertEqual(app.screen.styles.background.rgb, palette.background)
+                    self.assertEqual(source.styles.background.rgb, palette.background)
+                    segments = list(source.render_line(0))
+                    self.assertEqual(segments[0].style.bgcolor.triplet, palette.cursor_background)
+                    self.assertEqual(segments[1].style.color.triplet, palette.foreground)
+                    self.assertEqual(segments[1].style.bgcolor.triplet, palette.cell_background)
+                    self.assertEqual(segments[-1].style.color.triplet, palette.background)
+                    self.assertEqual(segments[-1].style.bgcolor.triplet, palette.background)
+
+                    # Theme selection must not affect document geometry or border
+                    # colors, including after the view scrolls and gets resized.
+                    app.action_move_light(45, 20)
+                    await pilot.pause()
+                    self.assertEqual((source.viewport.x, source.viewport.y), (18, 15))
+                    await pilot.resize_terminal(30, 8)
+                    self.assertEqual((source.viewport.x, source.viewport.y), (30, 17))
+                    cursor = next(segment for segment in source.render_line(3)
+                                  if segment.style.bgcolor.triplet == palette.cursor_background)
+                    self.assertEqual(cursor.text, "a")
+                    frame = app.query_one("#frame", Container)
+                    top = frame.render_lines(Region(0, 0, 30, 1))[0]
+                    self.assertTrue(all(segment.style.color.is_default for segment in top))
+                    self.assertTrue(all(segment.style.bgcolor.is_default for segment in top))
+
     async def test_border_uses_terminal_default_foreground_and_resizes(self):
         app = NilavuApp("abc")
         async with app.run_test(size=(12, 6)) as pilot:

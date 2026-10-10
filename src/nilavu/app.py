@@ -5,7 +5,7 @@ from textual.containers import Container
 
 from nilavu.lighting import DEFAULT_LIGHT_SETTINGS, LightSettings
 from nilavu.navigation import LightPosition
-from nilavu.palette import DEFAULT_PALETTE
+from nilavu.palette import DEFAULT_PALETTE, Palette
 from nilavu.source_view import SourceView
 
 
@@ -27,41 +27,41 @@ class NilavuApp(App[None], inherit_bindings=False):
         ("l,right", "move_light(1,0)", "Right"),
     ]
 
-    # The approved explicit background makes the fade predictable. Colors come
-    # from one palette boundary rather than being scattered through rendering.
+    # Palette colors are applied on mount, once the selected screen/view exist.
     # The widget draws a document viewport; framework scrollbars are unnecessary.
-    CSS = f"""
-    Screen {{
-        background: {DEFAULT_PALETTE.color_at(0.0)};
-        color: {DEFAULT_PALETTE.color_at(1.0)};
+    CSS = """
+    Screen {
         overflow: hidden;
-    }}
+    }
 
-    #frame {{
+    #frame {
         width: 1fr;
         height: 1fr;
         background: ansi_default;
         border: solid ansi_default;
-    }}
+    }
 
-    #source {{
+    #source {
         width: 1fr;
         height: 1fr;
-        background: {DEFAULT_PALETTE.color_at(0.0)};
-        color: {DEFAULT_PALETTE.color_at(1.0)};
         overflow: hidden;
         text-wrap: nowrap;
         text-overflow: clip;
-    }}
+    }
     """
 
     def __init__(
-        self, source_text: str, *, light_settings: LightSettings = DEFAULT_LIGHT_SETTINGS
+        self,
+        source_text: str,
+        *,
+        light_settings: LightSettings = DEFAULT_LIGHT_SETTINGS,
+        palette: Palette = DEFAULT_PALETTE,
     ) -> None:
         # Prevent Textual from substituting RGB colors for the terminal palette.
         super().__init__(ansi_color=True)
         self._source_text = source_text
         self.light_settings = light_settings
+        self.palette = palette
         self.light_position = LightPosition.from_text(source_text)
 
     def compose(self) -> ComposeResult:
@@ -72,8 +72,19 @@ class NilavuApp(App[None], inherit_bindings=False):
         # foreground/background pair rather than guessing contrasting RGB values.
         with Container(id="frame"):
             yield SourceView(
-                self._source_text, self.light_position, light_settings=self.light_settings
+                self._source_text,
+                self.light_position,
+                self.palette,
+                light_settings=self.light_settings,
             )
+
+    def on_mount(self) -> None:
+        """Use the chosen palette for styled cells and uncovered screen areas."""
+        # Applying both backgrounds keeps dim text and padding at the same dark
+        # color. The frame keeps the terminal-default foreground/background pair.
+        for widget in (self.screen, self.query_one(SourceView)):
+            widget.styles.background = self.palette.color_at(0.0)
+            widget.styles.color = self.palette.color_at(1.0)
 
     def action_move_light(self, dx: int, dy: int) -> None:
         """Map an approved movement binding to state, then request a redraw."""

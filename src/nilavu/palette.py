@@ -1,4 +1,4 @@
-"""The small default palette, kept separate from light intensity calculations."""
+"""Coordinated palette presets, separate from light intensity calculations."""
 
 from dataclasses import dataclass
 
@@ -41,9 +41,28 @@ class Palette:
         return f"{self.color_at(stepped)} on {background}"
 
     def cursor_style(self) -> str:
-        """Highlight the current cell with dark text on an amber background."""
+        """Highlight the current cell with dark text on the palette's accent."""
         background = _blend(self.cursor_background, self.cursor_background, 0.0)
         return f"{self.color_at(0.0)} on {background}"
 
 
 DEFAULT_PALETTE = Palette()
+DEFAULT_THEME = "green"
+
+# Each preset supplies the same four roles. Rendering never needs to know which
+# theme was chosen; every preset uses the same light curve and five shade levels.
+PALETTES = {
+    DEFAULT_THEME: DEFAULT_PALETTE,
+    "moonlight": Palette(
+        background=(12, 16, 26),
+        foreground=(184, 211, 235),
+        cell_background=(37, 49, 66),
+        cursor_background=(170, 192, 240),
+    ),
+    "ember": Palette(
+        background=(24, 14, 12),
+        foreground=(238, 190, 139),
+        cell_background=(67, 40, 30),
+        cursor_background=(246, 209, 113),
+    ),
+}

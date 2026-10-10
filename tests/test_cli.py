@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 
 from nilavu.cli import main
 from nilavu.lighting import LightSettings
+from nilavu.palette import DEFAULT_PALETTE, PALETTES
 
 
 class CliTests(unittest.TestCase):
@@ -37,7 +38,8 @@ class CliTests(unittest.TestCase):
     def test_loads_and_prepares_the_supplied_path_before_launch(self):
         self.assertEqual(main([str(self.path)]), 0)
         self.app_factory.assert_called_once_with(
-            "    [bold]\n\\x1b[31m", light_settings=LightSettings(12.0, 2.0)
+            "    [bold]\n\\x1b[31m", light_settings=LightSettings(12.0, 2.0),
+            palette=DEFAULT_PALETTE,
         )
         self.app_factory.return_value.run.assert_called_once_with()
         self.assertEqual(self.stdout.getvalue(), "")
@@ -61,8 +63,30 @@ class CliTests(unittest.TestCase):
             "--radius", "14.5", str(self.path), "--cell-aspect-ratio", "1.8"
         ]), 0)
         self.app_factory.assert_called_once_with(
-            "    [bold]\n\\x1b[31m", light_settings=LightSettings(14.5, 1.8)
+            "    [bold]\n\\x1b[31m", light_settings=LightSettings(14.5, 1.8),
+            palette=DEFAULT_PALETTE,
         )
+
+    def test_each_theme_reaches_the_app_with_custom_geometry(self):
+        for name, palette in PALETTES.items():
+            with self.subTest(theme=name):
+                self.app_factory.reset_mock()
+                self.assertEqual(main([
+                    str(self.path), "--theme", name, "--radius", "14"
+                ]), 0)
+                self.app_factory.assert_called_once_with(
+                    "    [bold]\n\\x1b[31m", light_settings=LightSettings(14.0, 2.0),
+                    palette=palette,
+                )
+
+    def test_unknown_theme_is_rejected_before_loading_or_launch(self):
+        with patch("nilavu.cli.load_document") as loader:
+            with self.assertRaises(SystemExit) as exit_status:
+                main([str(self.path), "--theme", "unknown"])
+            self.assertEqual(exit_status.exception.code, 2)
+            loader.assert_not_called()
+        self.app_factory.assert_not_called()
+        self.assertIn("invalid choice", self.stderr.getvalue())
 
     def test_invalid_geometry_fails_before_loading_or_launch(self):
         with patch("nilavu.cli.load_document") as loader:
@@ -97,6 +121,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("Press q to quit", self.stdout.getvalue())
         self.assertIn("--radius", self.stdout.getvalue())
         self.assertIn("--cell-aspect-ratio", self.stdout.getvalue())
+        self.assertIn("--theme", self.stdout.getvalue())
         self.assertEqual(self.stderr.getvalue(), "")
         self.app_factory.assert_not_called()
 

@@ -9,6 +9,7 @@ from typing import TextIO
 from nilavu.app import NilavuApp
 from nilavu.document import DocumentError, load_document, normalize_text
 from nilavu.lighting import DEFAULT_LIGHT_SETTINGS, LightSettings
+from nilavu.palette import DEFAULT_THEME, PALETTES
 
 
 class _SafeArgumentParser(argparse.ArgumentParser):
@@ -51,6 +52,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.color = False
     parser.add_argument("path", help="path to a UTF-8 source or text file")
     parser.add_argument(
+        "--theme",
+        choices=PALETTES,
+        default=DEFAULT_THEME,
+        help="source palette (default: %(default)s)",
+    )
+    parser.add_argument(
         "--radius",
         type=_positive_finite,
         default=DEFAULT_LIGHT_SETTINGS.radius,
@@ -88,6 +95,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 1
 
-    app = NilavuApp(source_text, light_settings=light_settings)
+    app = NilavuApp(
+        source_text, light_settings=light_settings, palette=PALETTES[arguments.theme]
+    )
     app.run()
     return app.return_code
