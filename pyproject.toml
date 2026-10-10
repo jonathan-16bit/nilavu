@@ -9,6 +9,7 @@ description = "A terminal-native source viewer with an interactive light and sha
 requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
+dependencies = ["textual>=8.2.8,<9"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
