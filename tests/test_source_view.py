@@ -32,7 +32,7 @@ class SourceViewTests(unittest.IsolatedAsyncioTestCase):
             source = app.query_one(SourceView)
             # Four columns and two rows represent the same visual distance at 2:1.
             self.assertEqual(backgrounds(source, 0)[4], backgrounds(source, 2)[0])
-            self.assertEqual(backgrounds(source, 5)[0], DEFAULT_PALETTE.background)
+            self.assertEqual(backgrounds(source, 6)[0], DEFAULT_PALETTE.background)
 
     async def test_keys_move_the_light_and_clamp_at_document_edges(self):
         app = NilavuApp("abcdef\nx\n\nabcdef")
@@ -52,7 +52,7 @@ class SourceViewTests(unittest.IsolatedAsyncioTestCase):
             await pilot.press("right", "right", "right", "right", "right", "right")
             self.assertEqual(app.light_position.x, 5)
 
-    async def test_five_cell_shades_reach_darkness_at_radius_ten(self):
+    async def test_five_cell_shades_reach_darkness_at_radius_twelve(self):
         app = NilavuApp("abcdefghijklmnopqrst")
         async with app.run_test(size=(25, 4)):
             source = app.query_one(SourceView)
@@ -60,14 +60,14 @@ class SourceViewTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(colors[1], DEFAULT_PALETTE.foreground)
             # Exclude the cursor at zero: the five levels descend in plateaus,
             # and each has a distinct matching cell background.
-            greens = [color[1] for color in colors[1:11]]
+            greens = [color[1] for color in colors[1:13]]
             self.assertTrue(all(a >= b for a, b in zip(greens, greens[1:])))
-            self.assertEqual(len(set(colors[1:11])), SHADE_LEVELS)
+            self.assertEqual(len(set(colors[1:13])), SHADE_LEVELS)
             cell_colors = backgrounds(source, 0)
-            self.assertEqual(len(set(cell_colors[1:11])), SHADE_LEVELS)
+            self.assertEqual(len(set(cell_colors[1:13])), SHADE_LEVELS)
             self.assertEqual(cell_colors[1], DEFAULT_PALETTE.cell_background)
-            self.assertTrue(all(color == DEFAULT_PALETTE.background for color in cell_colors[10:]))
-            self.assertTrue(all(color == DEFAULT_PALETTE.background for color in colors[10:]))
+            self.assertTrue(all(color == DEFAULT_PALETTE.background for color in cell_colors[12:]))
+            self.assertTrue(all(color == DEFAULT_PALETTE.background for color in colors[12:]))
             self.assertEqual(source.render_line(0).text.rstrip(), "abcdefghijklmnopqrst")
 
     async def test_movement_relights_the_source_without_replacing_characters(self):

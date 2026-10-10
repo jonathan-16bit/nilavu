@@ -8,7 +8,8 @@ from nilavu.navigation import LightPosition
 from nilavu.palette import DEFAULT_PALETTE, Palette
 
 
-LIGHT_RADIUS = 10.0
+# Radius in column-width units; tune the light's reach independently of its shape.
+LIGHT_RADIUS = 12.0
 # Cell height / width. Keep this visual estimate explicit and easy to tune after
 # trying the light with different fonts; it is not a universal terminal constant.
 CELL_ASPECT_RATIO = 2.0
