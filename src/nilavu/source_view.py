@@ -6,7 +6,7 @@ from textual.content import Content, Span
 from textual.events import Resize
 from textual.widgets import Static
 
-from nilavu.cells import visible_cells
+from nilavu.cells import CellIndex, visible_cells
 from nilavu.lighting import DEFAULT_LIGHT_SETTINGS, LightSettings, brightness_at
 from nilavu.navigation import LightPosition
 from nilavu.palette import DEFAULT_PALETTE, Palette
@@ -28,6 +28,13 @@ class SourceView(Static):
         # The document is split once. Movement changes only light state, never
         # file contents, and rendering work is limited to the visible rectangle.
         self._lines = source_text.split("\n")
+        # Build sparse indexes once for long Unicode lines. ASCII uses direct
+        # offsets; short Unicode lines need no extra retained state.
+        self._cell_indexes = {
+            row: CellIndex(line)
+            for row, line in enumerate(self._lines)
+            if len(line) > 256 and not line.isascii()
+        }
         self.light_position = light_position
         self.palette = palette
         self.light_settings = light_settings
@@ -67,9 +74,13 @@ class SourceView(Static):
         for document_y in range(self.viewport.y, self.viewport.y + self.size.height):
             text = self._lines[document_y] if document_y < len(self._lines) else ""
             parts = []
-            for document_x, glyph, cells in visible_cells(
-                text, self.viewport.x, self.size.width
-            ):
+            cell_index = self._cell_indexes.get(document_y)
+            row_cells = (
+                cell_index.visible_cells(self.viewport.x, self.size.width)
+                if cell_index is not None
+                else visible_cells(text, self.viewport.x, self.size.width)
+            )
+            for document_x, glyph, cells in row_cells:
                 intensity = brightness_at(
                     document_x,
                     document_y,

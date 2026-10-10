@@ -1,6 +1,7 @@
 """Check the playable key-to-state-to-lit-source interaction."""
 
 import unittest
+from unittest.mock import patch
 
 from rich.cells import cell_len
 
@@ -9,6 +10,7 @@ from nilavu.lighting import LightSettings
 from nilavu.palette import DEFAULT_PALETTE, SHADE_LEVELS
 from nilavu.source_view import SourceView
 from nilavu.viewport import Viewport
+import nilavu.cells as cells_module
 
 
 def foregrounds(source: SourceView, row: int) -> list[tuple[int, int, int]]:
@@ -30,6 +32,22 @@ def backgrounds(source: SourceView, row: int) -> list[tuple[int, int, int]]:
 
 
 class SourceViewTests(unittest.IsolatedAsyncioTestCase):
+    async def test_far_unicode_scroll_reuses_index_and_keeps_cursor_aligned(self):
+        app = NilavuApp("a界e\u0301" * 20000)
+        async with app.run_test(size=(42, 6)) as pilot:
+            source = app.query_one(SourceView)
+            app.action_move_light(79001, 0)
+            await pilot.pause()
+            with patch("nilavu.cells._glyph_at", wraps=cells_module._glyph_at) as read_glyph:
+                content = source.render()
+            self.assertLess(read_glyph.call_count, 400)
+            self.assertEqual(cell_len(content.plain.split("\n")[0]), 40)
+            cursor_x = app.light_position.x - source.viewport.x
+            self.assertEqual(backgrounds(source, 0)[cursor_x], DEFAULT_PALETTE.cursor_background)
+            # Starting inside a wide glyph produces a space, then the accent's
+            # intact base; subsequent cells keep their original document columns.
+            self.assertTrue(source.render_line(0).text.startswith(" e\u0301a界"))
+
     async def test_custom_geometry_drives_shading_scrolling_and_resize(self):
         settings = LightSettings(radius=4.5, cell_aspect_ratio=1.5)
         app = NilavuApp("\n".join(["a" * 50] * 30), light_settings=settings)

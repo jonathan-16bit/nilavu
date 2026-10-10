@@ -1,13 +1,41 @@
 """Protect cell accounting and clipping without starting the terminal UI."""
 
 import unittest
+from unittest.mock import patch
 
 from rich.cells import cell_len
 
-from nilavu.cells import line_width, visible_cells
+from nilavu.cells import CellIndex, line_width, visible_cells
+import nilavu.cells as cells_module
 
 
 class CellTests(unittest.TestCase):
+    def test_far_ascii_view_does_not_measure_the_hidden_prefix(self):
+        text = "a" * (1024 * 1024 - 4) + "tail"
+        with patch("nilavu.cells.get_character_cell_size", side_effect=AssertionError(
+            "ASCII seeking should not scan glyphs"
+        )):
+            cells = list(visible_cells(text, len(text) - 4, 6))
+        self.assertEqual("".join(glyph for _, glyph, _ in cells), "tail  ")
+
+    def test_unicode_index_preserves_clipping_marks_and_padding(self):
+        text = "\u0301" + "a界e\u0301✈\ufe0f" * 1000 + "tail"
+        index = CellIndex(text)
+        for start in (0, 1, 2, 255, 256, 257, 5999, 6000, 6004, 6010):
+            for width in (0, 1, 2, 7):
+                with self.subTest(start=start, width=width):
+                    self.assertEqual(list(index.visible_cells(start, width)),
+                                     list(visible_cells(text, start, width)))
+
+    def test_far_unicode_view_reads_only_nearby_glyphs(self):
+        index = CellIndex("a界e\u0301" * 20000)
+        with patch("nilavu.cells._glyph_at", wraps=cells_module._glyph_at) as read_glyph:
+            cells = list(index.visible_cells(79001, 80))
+        self.assertEqual(sum(width for _, _, width in cells), 80)
+        # Count work instead of elapsed time: this fails if seeking ever reverts
+        # to scanning tens of thousands of hidden glyphs on every frame.
+        self.assertLess(read_glyph.call_count, 400)
+
     def test_width_matches_visible_cells_for_mixed_text(self):
         for text in ("", "abc", "界e\u0301🙂", "\u0301a", "✈\ufe0fX"):
             with self.subTest(text=text):
