@@ -36,8 +36,9 @@ or text file to explore something else:
 ```
 
 Use `h`, `j`, `k`, `l` or the arrow keys to move left, down, up, and right.
-Press `q` to exit. Long files and wide lines scroll when the light approaches a
-screen edge. Movement stays within the document's rectangular bounds, including
+Press `t` to switch themes, `r` to advance the forest seed, and `q` to exit.
+The bottom border shows the theme and, for forest, the current seed. Long files
+and wide lines scroll when the light approaches a screen edge. Movement stays within the document's rectangular bounds, including
 empty space beside short lines.
 
 Adjust the light when launching:
@@ -61,9 +62,18 @@ Choose a coordinated text, cell-background, darkness, and cursor palette:
 `--theme` accepts `moonlight` (the default, cool blue) or `forest` (seeded greens
 with a gold cursor). Forest generates one coordinated palette for the whole
 view. `--seed` accepts text and defaults to `moss`: the same seed repeats the same
-colors, while different seeds vary them within forest color ranges. It is ignored
-for moonlight. Both themes keep the same five shading levels and movement;
-the border continues to use your terminal's colors.
+colors, while different seeds vary them within forest color ranges. Moonlight
+uses fixed colors and remembers your forest seed when you switch back.
+
+While forest is active, `r` hashes the current seed into the next eight-character
+hexadecimal seed and applies its palette. Starting from the same seed repeats
+the same sequence; `r` does nothing in moonlight. Reuse any seed shown in the
+border with `--seed` to reproduce that palette and continue its sequence. Long
+status text is clipped to fit small terminals; control and non-ASCII characters
+in manually supplied seeds appear as escape notation.
+
+Both themes keep the same five shading levels and movement; the border continues
+to use your terminal's colors.
 
 Radius and aspect ratio accept finite positive numbers, including decimals.
 Lighting and scrolling use the same settings. Scrolling margins shrink on small screens;

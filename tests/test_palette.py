@@ -4,7 +4,7 @@ import unittest
 
 from rich.style import Style
 
-from nilavu.palette import DEFAULT_PALETTE, DEFAULT_THEME, THEMES, palette_for, SHADE_LEVELS
+from nilavu.palette import DEFAULT_PALETTE, DEFAULT_THEME, THEMES, next_seed, palette_for, SHADE_LEVELS
 
 
 class PaletteTests(unittest.TestCase):
@@ -59,3 +59,16 @@ class PaletteTests(unittest.TestCase):
                 self.assertGreaterEqual(contrast(palette.foreground, palette.cell_background), 4.5)
                 self.assertGreaterEqual(contrast(palette.cursor_background, palette.background), 4.5)
                 self.assertEqual(len({palette.style_at(level / 4) for level in range(5)}), 5)
+
+    def test_seed_sequence_is_repeatable_and_can_resume_from_a_displayed_seed(self):
+        seed = "fern"
+        sequence = []
+        for _ in range(20):
+            seed = next_seed(seed)
+            self.assertRegex(seed, r"^[0-9a-f]{8}$")
+            sequence.append(seed)
+        self.assertEqual(len(set(sequence)), 20)
+        self.assertEqual(next_seed("fern"), sequence[0])
+        self.assertEqual(next_seed(sequence[0]), sequence[1])
+        self.assertNotEqual(next_seed("moss"), sequence[0])
+        self.assertEqual(next_seed("\udcff"), next_seed("\udcff"))

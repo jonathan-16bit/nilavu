@@ -78,9 +78,16 @@ def forest_palette(seed: str = DEFAULT_SEED) -> Palette:
 
 
 def palette_for(theme: str, seed: str = DEFAULT_SEED) -> Palette:
-    """Resolve a theme once at startup; renderers only receive its color roles."""
+    """Resolve a theme and seed; renderers only receive its color roles."""
     if theme == "moonlight":
         return DEFAULT_PALETTE
     if theme == "forest":
         return forest_palette(seed)
     raise ValueError(f"Unknown theme: {theme}")
+
+
+def next_seed(seed: str) -> str:
+    """Advance along a repeatable sequence of short, reusable seed strings."""
+    # Hash the seed itself, so relaunching with any displayed seed also resumes
+    # its sequence. No random state or hidden starting seed needs to be saved.
+    return sha256(seed.encode("utf-8", errors="surrogatepass")).hexdigest()[:8]

@@ -9,7 +9,7 @@ from typing import TextIO
 from nilavu.app import NilavuApp
 from nilavu.document import DocumentError, load_document, normalize_text
 from nilavu.lighting import DEFAULT_LIGHT_SETTINGS, LightSettings
-from nilavu.palette import DEFAULT_SEED, DEFAULT_THEME, THEMES, palette_for
+from nilavu.palette import DEFAULT_SEED, DEFAULT_THEME, THEMES
 
 
 class _SafeArgumentParser(argparse.ArgumentParser):
@@ -44,7 +44,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         prog="nilavu",
         description=(
             "View a local source file through a movable light. "
-            "Move with hjkl or arrow keys. Press q to quit."
+            "Move with hjkl or arrow keys. Press t to switch themes, "
+            "r for the next forest seed. Press q to quit."
         ),
     )
     # Newer Python versions can color help. Keep help plain before sanitizing it;
@@ -60,7 +61,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--seed",
         default=DEFAULT_SEED,
-        help="forest palette seed; ignored for moonlight (default: %(default)s)",
+        help="starting forest palette seed (default: %(default)s)",
     )
     parser.add_argument(
         "--radius",
@@ -103,7 +104,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     app = NilavuApp(
         source_text,
         light_settings=light_settings,
-        palette=palette_for(arguments.theme, arguments.seed),
+        theme=arguments.theme,
+        seed=arguments.seed,
     )
     app.run()
     return app.return_code

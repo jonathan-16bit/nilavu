@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 
 from nilavu.cli import main
 from nilavu.lighting import LightSettings
-from nilavu.palette import DEFAULT_PALETTE, THEMES, palette_for
+from nilavu.palette import DEFAULT_SEED, DEFAULT_THEME, THEMES
 
 
 class CliTests(unittest.TestCase):
@@ -39,7 +39,7 @@ class CliTests(unittest.TestCase):
         self.assertEqual(main([str(self.path)]), 0)
         self.app_factory.assert_called_once_with(
             "    [bold]\n\\x1b[31m", light_settings=LightSettings(12.0, 2.0),
-            palette=DEFAULT_PALETTE,
+            theme=DEFAULT_THEME, seed=DEFAULT_SEED,
         )
         self.app_factory.return_value.run.assert_called_once_with()
         self.assertEqual(self.stdout.getvalue(), "")
@@ -64,12 +64,11 @@ class CliTests(unittest.TestCase):
         ]), 0)
         self.app_factory.assert_called_once_with(
             "    [bold]\n\\x1b[31m", light_settings=LightSettings(14.5, 1.8),
-            palette=DEFAULT_PALETTE,
+            theme=DEFAULT_THEME, seed=DEFAULT_SEED,
         )
 
     def test_each_theme_reaches_the_app_with_custom_geometry(self):
         for name in THEMES:
-            palette = palette_for(name)
             with self.subTest(theme=name):
                 self.app_factory.reset_mock()
                 self.assertEqual(main([
@@ -77,7 +76,7 @@ class CliTests(unittest.TestCase):
                 ]), 0)
                 self.app_factory.assert_called_once_with(
                     "    [bold]\n\\x1b[31m", light_settings=LightSettings(14.0, 2.0),
-                    palette=palette,
+                    theme=name, seed=DEFAULT_SEED,
                 )
 
     def test_unknown_and_removed_themes_are_rejected_before_loading_or_launch(self):
@@ -91,13 +90,13 @@ class CliTests(unittest.TestCase):
         self.app_factory.assert_not_called()
         self.assertIn("invalid choice", self.stderr.getvalue())
 
-    def test_custom_seed_reaches_forest_and_does_not_change_moonlight(self):
+    def test_custom_seed_and_theme_reach_the_app(self):
         for theme in THEMES:
             with self.subTest(theme=theme):
                 self.app_factory.reset_mock()
                 self.assertEqual(main([str(self.path), "--theme", theme, "--seed", "fern"]), 0)
-                self.assertEqual(self.app_factory.call_args.kwargs["palette"],
-                                 palette_for(theme, "fern"))
+                self.assertEqual(self.app_factory.call_args.kwargs["theme"], theme)
+                self.assertEqual(self.app_factory.call_args.kwargs["seed"], "fern")
 
     def test_invalid_geometry_fails_before_loading_or_launch(self):
         with patch("nilavu.cli.load_document") as loader:

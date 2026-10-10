@@ -10,7 +10,7 @@ from textual.widgets import Static
 
 from nilavu.app import NilavuApp
 from nilavu.document import load_document
-from nilavu.palette import DEFAULT_PALETTE, THEMES, palette_for
+from nilavu.palette import DEFAULT_PALETTE, THEMES, next_seed, palette_for
 from nilavu.source_view import SourceView
 
 
@@ -19,10 +19,11 @@ class NilavuAppTests(unittest.IsolatedAsyncioTestCase):
         for name in THEMES:
             palette = palette_for(name)
             with self.subTest(theme=name):
-                app = NilavuApp("\n".join(["a" * 60] * 30), palette=palette)
+                app = NilavuApp("\n".join(["a" * 60] * 30), theme=name)
                 async with app.run_test(size=(42, 12)) as pilot:
                     source = app.query_one(SourceView)
-                    self.assertIs(source.palette, palette)
+                    self.assertIs(source.palette, app.palette)
+                    self.assertEqual(source.palette, palette)
                     self.assertEqual(app.screen.styles.background.rgb, palette.background)
                     self.assertEqual(source.styles.background.rgb, palette.background)
                     segments = list(source.render_line(0))
@@ -55,7 +56,9 @@ class NilavuAppTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(source.region, Region(1, 1, 10, 4))
             rows = frame.render_lines(Region(0, 0, 12, 6))
             self.assertEqual(rows[0].text, "┌" + "─" * 10 + "┐")
-            self.assertEqual(rows[-1].text, "└" + "─" * 10 + "┘")
+            self.assertTrue(rows[-1].text.startswith("└"))
+            self.assertTrue(rows[-1].text.endswith("┘"))
+            self.assertEqual(len(rows[-1].text), 12)
             # The emitted border style must remain terminal-default color,
             # rather than being resolved to the app's green or a fixed RGB value.
             self.assertTrue(all(segment.style.color.is_default for segment in rows[0]))
@@ -135,3 +138,80 @@ class NilavuAppTests(unittest.IsolatedAsyncioTestCase):
             # which would otherwise hide a broken quit binding.
             self.assertFalse(app.is_running)
         self.assertEqual(app.return_code, 0)
+
+    async def test_live_palette_controls_preserve_view_and_reproduce_seeds(self):
+        text = "\n".join(["a" * 80] * 40)
+        app = NilavuApp(text, theme="forest", seed="fern")
+        async with app.run_test(size=(80, 20)) as pilot:
+            source = app.query_one(SourceView)
+            frame = app.query_one("#frame", Container)
+            app.action_move_light(60, 25)
+            await pilot.pause()
+            position, viewport = app.light_position, source.viewport
+            original_palette = app.palette
+            lines, indexes = source._lines, source._cell_indexes
+            self.assertIn("seed 'fern'", str(frame.border_subtitle))
+            for _ in range(2):
+                prior_seed = app.seed
+                await pilot.press("r")
+                self.assertEqual(app.seed, next_seed(prior_seed))
+                self.assertEqual(app.palette, palette_for("forest", app.seed))
+                self.assertIs(source.palette, app.palette)
+                self.assertIn(app.seed, str(frame.border_subtitle))
+                self.assertEqual(app.screen.styles.background.rgb, app.palette.background)
+                self.assertEqual(source.styles.background.rgb, app.palette.background)
+                self.assertEqual(app.light_position, position)
+                self.assertEqual(source.viewport, viewport)
+            self.assertNotEqual(app.palette, original_palette)
+            # Relaunching with the displayed seed reproduces this palette and
+            # starts at the same point in the sequence, without hidden state.
+            resumed = NilavuApp(text, theme="forest", seed=app.seed)
+            self.assertEqual(resumed.palette, app.palette)
+            remembered_seed, remembered_palette = app.seed, app.palette
+            await pilot.press("t")
+            self.assertEqual(app.palette_theme, "moonlight")
+            self.assertEqual(app.palette, DEFAULT_PALETTE)
+            await pilot.press("r")
+            self.assertEqual(app.seed, remembered_seed)
+            await pilot.press("t")
+            self.assertEqual(app.palette_theme, "forest")
+            self.assertEqual(app.palette, remembered_palette)
+            self.assertIs(source._lines, lines)
+            self.assertIs(source._cell_indexes, indexes)
+            self.assertEqual(source.viewport, viewport)
+            # The cursor and terminal-colored status survive a resize too.
+            await pilot.resize_terminal(50, 12)
+            await pilot.press("r")
+            row = app.light_position.y - source.viewport.y
+            cursor = next(segment for segment in source.render_line(row)
+                          if segment.style.bgcolor.triplet == app.palette.cursor_background)
+            self.assertEqual(cursor.text, "a")
+            bottom = frame.render_lines(Region(0, 0, 50, 12))[-1]
+            self.assertIn(app.seed, bottom.text)
+            self.assertTrue(all(segment.style.color.is_default for segment in bottom))
+            self.assertTrue(all(segment.style.bgcolor.is_default for segment in bottom))
+            await pilot.press("q")
+            self.assertFalse(app.is_running)
+
+    async def test_status_displays_seed_as_literal_safe_text(self):
+        seed = "[bold]\x1b]52;payload\x07\n\u202e"
+        app = NilavuApp("abc", theme="forest", seed=seed)
+        async with app.run_test(size=(120, 8)) as pilot:
+            frame = app.query_one("#frame", Container)
+            status = frame.render_lines(Region(0, 0, 120, 8))[-1].text
+            self.assertIn(ascii(seed), status)
+            self.assertNotIn("\x1b", status)
+            self.assertNotIn("\u202e", status)
+            self.assertNotIn("\n", status)
+            self.assertEqual(app.seed, seed)
+            await pilot.resize_terminal(3, 3)
+            await pilot.press("t", "r", "t", "r", "q")
+            self.assertFalse(app.is_running)
+
+    async def test_moonlight_start_remembers_cli_seed_for_first_theme_switch(self):
+        app = NilavuApp("abc", seed="fern")
+        async with app.run_test() as pilot:
+            self.assertEqual(app.palette, DEFAULT_PALETTE)
+            await pilot.press("r", "t")
+            self.assertEqual(app.seed, "fern")
+            self.assertEqual(app.palette, palette_for("forest", "fern"))
