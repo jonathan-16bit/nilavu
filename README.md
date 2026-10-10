@@ -35,13 +35,19 @@ or text file to explore something else:
 ./dev run pyproject.toml
 ```
 
-Use `h`, `j`, `k`, `l` or the arrow keys to move left, down, up, and right.
-Press `t` to switch themes, `r` to advance the forest seed, and `q` to exit.
-The bottom border shows the theme and, for forest, the current seed. Long files
-and wide lines scroll when the light approaches a screen edge. Movement stays within the document's rectangular bounds, including
-empty space beside short lines.
+| Key | Action |
+| --- | --- |
+| `h`, `j`, `k`, `l` / arrow keys | Move left, down, up, and right. |
+| `t` | Switch between moonlight and forest, remembering the forest seed. |
+| `r` | Advance to the next forest seed; does nothing in moonlight. |
+| `q` | Quit and restore the terminal. |
 
-Adjust the light when launching:
+The bottom border shows the theme and, for forest, the current seed. Long files
+and wide lines scroll when the light approaches a screen edge. Movement stays
+within the document's rectangular bounds, including empty space beside short lines.
+Changing themes or seeds preserves the light position and scroll position.
+
+Configure the viewer when launching:
 
 ```bash
 ./dev run pyproject.toml --radius 14 --cell-aspect-ratio 1.8
@@ -49,6 +55,8 @@ Adjust the light when launching:
 
 | Option | Default | Meaning |
 | --- | --- | --- |
+| `--theme` | `moonlight` | Starting palette family: `moonlight` or `forest`. |
+| `--seed` | `moss` | Starting forest seed, remembered even when launching in moonlight. |
 | `--radius` | `12` | Reach in terminal column-width units. Larger values expand the light. |
 | `--cell-aspect-ratio` | `2` | Cell height divided by width. Larger values compress the vertical reach. |
 
@@ -65,8 +73,14 @@ view. `--seed` accepts text and defaults to `moss`: the same seed repeats the sa
 colors, while different seeds vary them within forest color ranges. Moonlight
 uses fixed colors and remembers your forest seed when you switch back.
 
-While forest is active, `r` hashes the current seed into the next eight-character
-hexadecimal seed and applies its palette. Starting from the same seed repeats
+Seeds are text strings: `fern`, `12345`, and `7fa3` are all valid. Hex-looking
+strings are treated as text, not as base colors. The seed selects colors within
+the forest family's green and gold ranges; it does not depend on file contents.
+Using the same seed on another file gives the same palette. Different seeds
+can produce the same colors, so uniqueness is not guaranteed.
+
+While forest is active, `r` uses SHA-256 to hash the current seed into the next
+eight-character hexadecimal seed and applies its palette. Starting from the same seed repeats
 the same sequence; `r` does nothing in moonlight. Reuse any seed shown in the
 border with `--seed` to reproduce that palette and continue its sequence. Long
 status text is clipped to fit small terminals; control and non-ASCII characters
@@ -81,7 +95,8 @@ document boundaries can still clip the light. Tune the aspect ratio to suit your
 terminal font rather than assuming every terminal has the same cell shape.
 
 See all options with `./dev run --help`. The launcher uses the existing virtual
-environment automatically. You can also activate it with `source .venv/bin/activate` and use `nilavu` directly.
+environment automatically. You can also activate it with
+`source .venv/bin/activate` and use `nilavu` directly.
 
 ## Input handling and current limits
 
