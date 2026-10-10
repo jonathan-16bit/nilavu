@@ -1,5 +1,7 @@
 """Apply lighting to visible source characters at the Textual UI boundary."""
 
+import math
+
 from textual.content import Content, Span
 from textual.events import Resize
 from textual.widgets import Static
@@ -37,15 +39,24 @@ class SourceView(Static):
     def update_light(self, position: LightPosition) -> None:
         """Follow document movement, then let Textual schedule the new frame."""
         self.light_position = position
-        self.viewport = self.viewport.follow(position, self.size.width, self.size.height)
+        self._follow_light(self.size.width, self.size.height)
         self.refresh()
 
     def on_resize(self, event: Resize) -> None:
         """Keep the light visible when the terminal's visible area changes."""
-        self.viewport = self.viewport.follow(
-            self.light_position, event.size.width, event.size.height
-        )
+        self._follow_light(event.size.width, event.size.height)
         self.refresh()
+
+    def _follow_light(self, width: int, height: int) -> None:
+        # The same geometry drives shading and scrolling. Round fractional cell
+        # extents up to reserve space for the outer light when the screen fits it.
+        self.viewport = self.viewport.follow(
+            self.light_position,
+            width,
+            height,
+            margin_x=math.ceil(LIGHT_RADIUS),
+            margin_y=math.ceil(LIGHT_RADIUS / CELL_ASPECT_RATIO),
+        )
 
     def render(self) -> Content:
         """Return source characters with stepped cell shading and a cursor."""

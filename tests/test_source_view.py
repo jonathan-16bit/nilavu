@@ -27,27 +27,41 @@ def backgrounds(source: SourceView, row: int) -> list[tuple[int, int, int]]:
 
 
 class SourceViewTests(unittest.IsolatedAsyncioTestCase):
+    async def test_scrolling_uses_full_light_radius_when_screen_has_room(self):
+        lines = [f"{row:02}" + "abcdefghijklmnopqrstuvwxyz" * 2 for row in range(40)]
+        app = NilavuApp("\n".join(lines))
+        async with app.run_test(size=(30, 16)) as pilot:
+            source = app.query_one(SourceView)
+            await pilot.press(*(["right"] * 17 + ["down"] * 9))
+            self.assertEqual(source.viewport, Viewport())
+            await pilot.press("right", "down")
+            # Scroll at the light's extents, well before the cursor reaches an edge.
+            self.assertEqual(source.viewport, Viewport(1, 1))
+            self.assertEqual(source.render_line(0).text, lines[1][1:31])
+            self.assertEqual(backgrounds(source, 9)[17], DEFAULT_PALETTE.cursor_background)
+
     async def test_scrolling_keeps_source_cursor_and_light_aligned(self):
         lines = [f"{row:02}abcdefghijklmnop" for row in range(10)]
         app = NilavuApp("\n".join(lines))
         async with app.run_test(size=(8, 4)) as pilot:
             source = app.query_one(SourceView)
             await pilot.press(*(["right"] * 9 + ["down"] * 5))
-            self.assertEqual(source.viewport, Viewport(2, 2))
-            self.assertEqual(source.render_line(0).text, lines[2][2:10])
-            self.assertEqual(source.render_line(3).text, lines[5][2:10])
-            self.assertEqual(backgrounds(source, 3)[7], DEFAULT_PALETTE.cursor_background)
-            self.assertEqual(backgrounds(source, 3)[6], DEFAULT_PALETTE.cell_background)
+            # Small screens reduce the radius margins instead of losing the cursor.
+            self.assertEqual(source.viewport, Viewport(5, 3))
+            self.assertEqual(source.render_line(0).text, lines[3][5:13])
+            self.assertEqual(source.render_line(3).text, lines[6][5:13])
+            self.assertEqual(backgrounds(source, 2)[4], DEFAULT_PALETTE.cursor_background)
+            self.assertEqual(backgrounds(source, 2)[3], DEFAULT_PALETTE.cell_background)
 
             # Moving inside the visible area leaves the source stationary.
-            await pilot.press("left", "up")
-            self.assertEqual(source.viewport, Viewport(2, 2))
-            self.assertEqual(backgrounds(source, 2)[6], DEFAULT_PALETTE.cursor_background)
-            # Crossing the left and top edges reveals earlier source again.
+            await pilot.press("left", "up", "right", "down")
+            self.assertEqual(source.viewport, Viewport(5, 3))
+            self.assertEqual(backgrounds(source, 2)[4], DEFAULT_PALETTE.cursor_background)
+            # Crossing the inset left and top edges reveals earlier source again.
             await pilot.press(*(["left"] * 7 + ["up"] * 3))
-            self.assertEqual(source.viewport, Viewport(1, 1))
-            self.assertEqual(source.render_line(0).text, lines[1][1:9])
-            self.assertEqual(backgrounds(source, 0)[0], DEFAULT_PALETTE.cursor_background)
+            self.assertEqual(source.viewport, Viewport(0, 1))
+            self.assertEqual(source.render_line(0).text, lines[1][:8])
+            self.assertEqual(backgrounds(source, 1)[2], DEFAULT_PALETTE.cursor_background)
 
     async def test_resize_follows_light_without_changing_document_position(self):
         app = NilavuApp("\n".join(["abcdefghijklmnopqrst"] * 10))
@@ -56,8 +70,8 @@ class SourceViewTests(unittest.IsolatedAsyncioTestCase):
             await pilot.press(*(["right"] * 9 + ["down"] * 5))
             await pilot.resize_terminal(5, 3)
             self.assertEqual((app.light_position.x, app.light_position.y), (9, 5))
-            self.assertEqual(source.viewport, Viewport(5, 3))
-            self.assertEqual(backgrounds(source, 2)[4], DEFAULT_PALETTE.cursor_background)
+            self.assertEqual(source.viewport, Viewport(7, 4))
+            self.assertEqual(backgrounds(source, 1)[2], DEFAULT_PALETTE.cursor_background)
             await pilot.resize_terminal(25, 12)
             self.assertEqual(source.viewport, Viewport())
             self.assertEqual(backgrounds(source, 5)[9], DEFAULT_PALETTE.cursor_background)
