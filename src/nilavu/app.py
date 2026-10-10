@@ -1,5 +1,6 @@
 """Display prepared source text inside the current terminal."""
 
+from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Container
 
@@ -63,6 +64,22 @@ class NilavuApp(App[None], inherit_bindings=False):
         self.light_settings = light_settings
         self.palette = palette
         self.light_position = LightPosition.from_text(source_text)
+
+    async def _ready(self) -> None:
+        """Skip Textual's environment-triggered screenshot-and-exit timer."""
+        # This Textual 8 hook otherwise saves source text when TEXTUAL_SCREENSHOT
+        # is inherited from the shell. Nilavu starts only its interactive viewer.
+
+    def _handle_exception(self, error: Exception) -> None:
+        """Exit with a concise diagnostic that cannot include document contents."""
+        # Preserve Textual 8's failure status and test-runner propagation, while
+        # avoiding exception messages, local variables, and custom Rich output.
+        self._return_code = 1
+        if self._exception is None:
+            self._exception = error
+            self._exception_event.set()
+        error_type = ascii(type(error).__name__)
+        self.panic(Text(f"nilavu: unexpected display error ({error_type})."))
 
     def compose(self) -> ComposeResult:
         """Mount the source view inside a terminal-colored frame."""
