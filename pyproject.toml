@@ -11,5 +11,8 @@ license = "MIT"
 license-files = ["LICENSE"]
 dependencies = ["textual>=8.2.8,<9"]
 
+[project.scripts]
+nilavu = "nilavu.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
