@@ -9,3 +9,11 @@ dist/
 *.egg-info/
 
 .DS_Store
+
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa
+id_ed25519
