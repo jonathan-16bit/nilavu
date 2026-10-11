@@ -7,7 +7,7 @@ Source stays real terminal text, with a visible cursor and scrolling that follow
 the illuminated area. A thin border uses your terminal's default foreground and
 background colors and resizes with the window, reserving one cell on each edge.
 
-This is an early development version.
+Version 0.1.0 is an early release.
 
 ## Setup
 
@@ -48,13 +48,14 @@ or text file to explore something else:
 | `w`, `a`, `s`, `d` | Move up, left, down, and right. |
 | Space (game only) | Wake a nearby sleeping firefly, or gather all three at the pond bank. |
 | `t` | Switch between moonlight and forest, remembering the forest seed. |
-| `r` | Advance to the next forest seed; does nothing in moonlight. |
+| `r` | Game: start the next seeded world in either theme. Viewer: advance the forest palette seed; does nothing in moonlight. |
 | `q` | Quit and restore the terminal. |
 
-The bottom border shows the theme and, for forest, the current seed. Long files
+In the viewer, the bottom border shows the theme and, for forest, the current seed. Long files
 and wide lines scroll when the light approaches a screen edge. Movement stays
 within the document's rectangular bounds, including empty space beside short lines.
-Changing themes or seeds preserves the light position and scroll position.
+In the viewer, changing themes or seeds preserves the light and scroll positions.
+In the game, changing themes preserves progress; advancing the seed starts a fresh run.
 
 Configure the viewer when launching:
 
@@ -64,7 +65,7 @@ Configure the viewer when launching:
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `--theme` | `moonlight` | Starting palette family: `moonlight` or `forest`. |
+| `--theme` | `moonlight` viewer, `forest` game | Starting palette family: `moonlight` or `forest`. |
 | `--seed` | `moss` | Starting forest seed, remembered even when launching in moonlight. |
 | `--radius` | `12` viewer, `16` game | Reach in terminal column-width units. Larger values expand the light. |
 | `--cell-aspect-ratio` | `2` | Cell height divided by width. Larger values compress the vertical reach. |
@@ -76,8 +77,8 @@ Choose a coordinated text, cell-background, darkness, and cursor palette:
 ./dev run pyproject.toml --theme forest --seed fern --radius 14
 ```
 
-`--theme` accepts `moonlight` (the default, cool blue) or `forest` (seeded greens
-with a gold cursor). Forest generates one coordinated palette for the whole
+For the viewer, `--theme` accepts `moonlight` (the default, cool blue) or `forest`
+(seeded greens with a gold cursor). Forest generates one coordinated palette for the whole
 view. `--seed` accepts text and defaults to `moss`: the same seed repeats the same
 colors, while different seeds vary them within forest color ranges. Moonlight
 uses fixed colors and remembers your forest seed when you switch back.
@@ -88,8 +89,8 @@ the forest family's green and gold ranges; it does not depend on file contents.
 Using the same seed on another file gives the same palette. Different seeds
 can produce the same colors, so uniqueness is not guaranteed.
 
-While forest is active, `r` uses SHA-256 to hash the current seed into the next
-eight-character hexadecimal seed and applies its palette. Starting from the same seed repeats
+In the viewer, while forest is active, `r` uses SHA-256 to hash the current seed
+into the next eight-character hexadecimal seed and applies its palette. Starting from the same seed repeats
 the same sequence; `r` does nothing in moonlight. Reuse any seed shown in the
 border with `--seed` to reproduce that palette and continue its sequence. Long
 status text is clipped to fit small terminals; control and non-ASCII characters
@@ -162,9 +163,9 @@ its radius of 12.
 
 Game scenery mixes standard keyboard punctuation with lowercase letters:
 light edges and `o` foliage, `|` trunks, `o/*` flower heads, `v` leafy bases,
-`~` ripples, and `x/:` stone textures. Only trunks, crystals, and lanterns use
-bold text, keeping plants soft while accents remain clear. The lantern is a
-compact `[*]` on a post.
+`~` ripples, and `x/:` stone textures. Trunks, crystals, lanterns, fireflies, and
+the gathering marker use bold text, keeping plants soft while accents remain
+clear. The lantern is a compact `[*]` on a post.
 
 Game mode never reads a source file; a path supplied with `--game` is rejected. The seed alone reproduces both terrain
 and scenery. Symbol choices have separate random state, so art refinements do
@@ -197,6 +198,8 @@ for inspecting its composition, while leaving collisions active. It requires
 
 - Game mode needs no input file. The source viewer opens only the supplied local
   file, read-only. Neither mode uses runtime networking or subprocess execution.
+- Inherited Textual diagnostic logging, debug features, developer-tool connections,
+  and automatic screenshots are disabled.
 - Accepts regular UTF-8 files up to 1 MiB. Invalid UTF-8 and NUL-containing files
   are rejected.
 - Normalizes line endings, expands tabs at four-column stops, and displays
