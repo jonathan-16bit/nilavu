@@ -151,36 +151,30 @@ def _scenery_rows(terrain: tuple[tuple[Terrain, ...], ...], seed: str) -> tuple[
                              ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)))
                 # Soft rims and denser interiors read as leafy crowns, rather
                 # than unrelated characters spread across a colored patch.
-                glyph = "o" if around < 3 else rng.choice("OOOo")
+                glyph = "." if around < 3 else rng.choice("o,*o ")
             elif kind == Terrain.TRUNK:
-                glyph = "H"
+                glyph = "|"
             elif kind == Terrain.WATER:
                 # Calm broken ripple bands leave enough solid blue to read water.
                 if y % 2 == 0 and (x + y) % 5 < 3:
                     glyph = "~"
             elif kind in (Terrain.FLOWER, Terrain.GOLD_FLOWER):
-                glyph = "@" if neighbor(x - 1, y) == kind and neighbor(x + 1, y) == kind else "o"
+                left, right = neighbor(x - 1, y) == kind, neighbor(x + 1, y) == kind
+                center = left and right and neighbor(x, y - 1) == kind and neighbor(x, y + 1) == kind
+                glyph = "*" if center else "o" if left and right else "."
             elif kind == Terrain.TALL_GRASS:
-                glyph = rng.choice("WWv ")
+                glyph = rng.choice("'v,v ")
             elif kind == Terrain.ROCK:
-                glyph = "#" if neighbor(x, y - 1) == Terrain.ROCK else "%"
+                glyph = "x" if neighbor(x, y - 1) == Terrain.ROCK else ":"
             elif kind == Terrain.CRYSTAL:
-                glyph = "A"
+                glyph = "+"
             elif kind == Terrain.STEPPING_STONE:
                 glyph = "="
             elif kind == Terrain.RUIN:
-                # Connected masonry distinguishes a lintel from upright pillars.
-                left, right = neighbor(x - 1, y) == kind, neighbor(x + 1, y) == kind
-                below = neighbor(x, y + 1) == kind
-                if below and right and not left:
-                    glyph = "+"
-                elif below and left and not right:
-                    glyph = "+"
-                else:
-                    glyph = "#" if left or right else "H"
+                glyph = "-" if neighbor(x - 1, y) == kind or neighbor(x + 1, y) == kind else "|"
             elif kind == Terrain.LANTERN:
                 left, right = neighbor(x - 1, y) == kind, neighbor(x + 1, y) == kind
-                glyph = "O" if left and right else "]" if left else "[" if right else "H"
+                glyph = "*" if left and right else "]" if left else "[" if right else "|"
             parts.append(glyph)
         rows.append("".join(parts))
     return tuple(rows)

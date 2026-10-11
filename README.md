@@ -133,10 +133,11 @@ viewport, never the generated world or movement bounds. Game mode defaults to a
 light radius of 16 columns; `--radius` overrides it. The ordinary viewer retains
 its radius of 12.
 
-Game scenery uses standard keyboard characters: `O/o` foliage, `H` wood grain,
-`o/@` flower heads, `W/v` leafy bases, `~` ripples, and heavier stone and masonry
-textures. Foliage, petals, and accents use bold text for more body. The lantern
-is a compact `[O]` on a post.
+Game scenery mixes standard keyboard punctuation with lowercase letters:
+light edges and `o` foliage, `|` trunks, `o/*` flower heads, `v` leafy bases,
+`~` ripples, and `x/:` stone textures. Only trunks, crystals, and lanterns use
+bold text, keeping plants soft while accents remain clear. The lantern is a
+compact `[*]` on a post.
 
 Game mode never reads a source file; a path supplied with `--game` is rejected. The seed alone reproduces both terrain
 and scenery. Symbol choices have separate random state, so art refinements do

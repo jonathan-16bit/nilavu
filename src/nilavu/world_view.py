@@ -102,9 +102,8 @@ class WorldView(SourceView):
                     cell_aspect_ratio=self.light_settings.cell_aspect_ratio)
                 kind = self.world.terrain[y][x]
                 style = self._terrain_palettes[kind].style_at(intensity)
-                # Heavier foliage and petals give keyboard characters more body.
-                if kind in (Terrain.CANOPY, Terrain.TRUNK, Terrain.FLOWER,
-                            Terrain.GOLD_FLOWER, Terrain.CRYSTAL, Terrain.LANTERN):
+                # Keep foliage light; reserve heavier text for small accents.
+                if kind in (Terrain.TRUNK, Terrain.CRYSTAL, Terrain.LANTERN):
                     style += " bold"
                 if y == self.light_position.y and x <= self.light_position.x < x + cells:
                     style = self.palette.cursor_style()
