@@ -34,6 +34,8 @@ class CliTests(unittest.TestCase):
             self.enterContext(replacement)
         self.app_factory = self.enterContext(patch("nilavu.cli.NilavuApp"))
         self.app_factory.return_value.return_code = 0
+        self.game_factory = self.enterContext(patch("nilavu.cli.ForestApp"))
+        self.game_factory.return_value.return_code = 0
 
     def test_loads_and_prepares_the_supplied_path_before_launch(self):
         self.assertEqual(main([str(self.path)]), 0)
@@ -163,3 +165,20 @@ class CliTests(unittest.TestCase):
     def test_propagates_the_apps_exit_status(self):
         self.app_factory.return_value.return_code = 1
         self.assertEqual(main([str(self.path)]), 1)
+
+    def test_game_options_select_forest_by_default_and_support_reveal(self):
+        self.assertEqual(main([str(self.path), "--game", "--reveal", "--seed", "pond"]), 0)
+        self.game_factory.assert_called_once_with(
+            "    [bold]\n\\x1b[31m", theme="forest", reveal=True,
+            light_settings=LightSettings(12.0, 2.0), seed="pond")
+        self.app_factory.assert_not_called()
+        self.game_factory.return_value.run.assert_called_once_with()
+
+    def test_game_accepts_explicit_moonlight_and_reveal_requires_game(self):
+        self.assertEqual(main([str(self.path), "--game", "--theme", "moonlight"]), 0)
+        self.assertEqual(self.game_factory.call_args.kwargs["theme"], "moonlight")
+        with patch("nilavu.cli.load_document") as loader:
+            with self.assertRaises(SystemExit) as exit_status:
+                main([str(self.path), "--reveal"])
+            self.assertEqual(exit_status.exception.code, 2)
+            loader.assert_not_called()

@@ -98,6 +98,35 @@ See all options with `./dev run --help`. The launcher uses the existing virtual
 environment automatically. You can also activate it with
 `source .venv/bin/activate` and use `nilavu` directly.
 
+## Forest experiment
+
+```bash
+./dev run src/nilavu/palette.py --game --seed fern
+./dev run src/nilavu/palette.py --game --seed fern --reveal
+```
+
+`--game` opens a fixed **60-column by 24-row** woodland with moss, grass,
+earthy clearings, small groves, and a pond. Most ground and foliage are walkable;
+water and tree cores block movement. Use the same movement keys and `q` to quit.
+This is a terrain experiment: fireflies, Space interactions, followers, and the
+pond finale are not implemented yet.
+
+The world has its own terminal-colored border. A terminal at least 62 columns
+by 26 rows displays the whole world; larger terminals center it in neutral space,
+and smaller terminals scroll. Changing font size or resizing changes only the
+viewport, never the generated world or movement bounds.
+
+Source words decorate the world rather than determine its layout. Short input
+is reused, long input is sampled across the file, and long words are clipped to
+fit. Empty input still produces colored terrain. Words are separated by spaces;
+the input file is read-only. The same file and seed reproduce the same world.
+
+Game mode starts with the forest palette unless `--theme` is supplied. `t`
+changes colors without changing terrain; `r` advances the seed and starts a new
+world at its initial clearing, in either theme. `--reveal` lights the entire world
+for inspecting its composition, while leaving collisions active. It requires
+`--game` and is an experiment preview, not a completed game.
+
 ## Input handling and current limits
 
 - Opens only the supplied local file, read-only. The viewer has no runtime
@@ -111,9 +140,10 @@ environment automatically. You can also activate it with
   columns, and combining marks stay with their base glyph. Partial wide glyphs
   at viewport edges become spaces until the full glyph is visible. Actual glyph
   widths can vary between terminal fonts.
-- Provides a fixed moonlight palette and a seeded forest palette. There is no
-  scenery or map generation, syntax highlighting, file editing, saved
-  configuration, or settings UI. CLI settings apply to the current launch only.
+- Provides a source viewer and an experimental generated forest, using fixed
+  moonlight or seeded forest colors. There is no syntax highlighting, file
+  editing, saved configuration, or settings UI. Settings apply to the current
+  launch only.
 
 ## Tests
 

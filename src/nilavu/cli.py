@@ -8,6 +8,7 @@ from typing import TextIO
 
 from nilavu.app import NilavuApp
 from nilavu.document import DocumentError, load_document, normalize_text
+from nilavu.game import ForestApp
 from nilavu.lighting import DEFAULT_LIGHT_SETTINGS, LightSettings
 from nilavu.palette import DEFAULT_SEED, DEFAULT_THEME, THEMES
 
@@ -45,23 +46,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         description=(
             "View a local source file through a movable light. "
             "Move with hjkl or arrow keys. Press t to switch themes, "
-            "r for the next forest seed. Press q to quit."
+            "r for the next seed (a new world in --game). Press q to quit."
         ),
     )
     # Newer Python versions can color help. Keep help plain before sanitizing it;
     # setting this attribute is harmless on older versions without colored help.
     parser.color = False
     parser.add_argument("path", help="path to a UTF-8 source or text file")
+    parser.add_argument("--game", action="store_true", help="explore an experimental 60x24 forest")
+    parser.add_argument("--reveal", action="store_true", help="show the whole forest (requires --game)")
     parser.add_argument(
         "--theme",
         choices=THEMES,
-        default=DEFAULT_THEME,
-        help="source palette (default: %(default)s)",
+        default=None,
+        help="palette (default: moonlight for the viewer, forest for --game)",
     )
     parser.add_argument(
         "--seed",
         default=DEFAULT_SEED,
-        help="starting forest palette seed (default: %(default)s)",
+        help="starting palette/world seed (default: %(default)s)",
     )
     parser.add_argument(
         "--radius",
@@ -78,6 +81,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="cell height divided by width (default: %(default)s)",
     )
     arguments = parser.parse_args(argv)
+    if arguments.reveal and not arguments.game:
+        parser.error("--reveal requires --game")
     # Keep one immutable settings object throughout the UI so illumination and
     # scrolling cannot accidentally use different geometry.
     try:
@@ -101,11 +106,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 1
 
-    app = NilavuApp(
-        source_text,
-        light_settings=light_settings,
-        theme=arguments.theme,
-        seed=arguments.seed,
-    )
+    settings = dict(light_settings=light_settings, seed=arguments.seed)
+    if arguments.game:
+        app = ForestApp(source_text, theme=arguments.theme or "forest",
+                        reveal=arguments.reveal, **settings)
+    else:
+        app = NilavuApp(source_text, theme=arguments.theme or DEFAULT_THEME, **settings)
     app.run()
     return app.return_code

@@ -1,0 +1,78 @@
+"""Exercise collisions, fixed map boundaries, resizing, and game seeds."""
+
+import unittest
+from textual.geometry import Region
+
+from nilavu.game import ForestApp
+from nilavu.navigation import LightPosition
+from nilavu.palette import next_seed
+from nilavu.world_view import WorldView
+
+
+class GameTests(unittest.IsolatedAsyncioTestCase):
+    async def test_world_stays_fixed_when_zooming_out_and_in(self):
+        app = ForestApp("fern", seed="pond", reveal=True)
+        async with app.run_test(size=(90, 40)) as pilot:
+            world = app.world
+            source = app.query_one(WorldView)
+            self.assertEqual(source.size.width, 60)
+            self.assertEqual(source.size.height, 24)
+            self.assertEqual(source.region, Region(14, 7, 62, 26))
+            self.assertEqual(len(source.render_line(0).text), 60)
+            self.assertTrue(app.screen.styles.background.ansi == -1)
+            await pilot.resize_terminal(30, 12)
+            self.assertIs(app.world, world)
+            self.assertEqual((source.size.width, source.size.height), (28, 10))
+            self.assertGreater(source.viewport.y, 0)
+            await pilot.resize_terminal(100, 50)
+            self.assertIs(app.world, world)
+            self.assertEqual((source.size.width, source.size.height), (60, 24))
+            self.assertEqual((source.viewport.x, source.viewport.y), (0, 0))
+            await pilot.resize_terminal(1, 1)
+            await pilot.press("q")
+            self.assertFalse(app.is_running)
+
+    async def test_blocked_terrain_and_seed_restart(self):
+        app = ForestApp("hello world", seed="fern")
+        async with app.run_test(size=(80, 30)) as pilot:
+            source = app.query_one(WorldView)
+            # Find accessible ground beside water and try to step into it.
+            for y in range(app.world.height):
+                for x in range(app.world.width - 1):
+                    if app.world.passable(x,y) and not app.world.passable(x+1,y):
+                        start = (x,y)
+                        break
+                else:
+                    continue
+                break
+            app.light_position = LightPosition(59, 23, *start)
+            source.update_light(app.light_position)
+            await pilot.press("right")
+            self.assertEqual((app.light_position.x, app.light_position.y), start)
+            previous = app.world
+            await pilot.press("t")
+            self.assertIs(app.world, previous)
+            await pilot.press("r")
+            self.assertEqual(app.seed, next_seed("fern"))
+            self.assertIsNot(app.world, previous)
+            self.assertIs(source.world, app.world)
+            self.assertEqual((app.light_position.x, app.light_position.y), app.world.spawn)
+            self.assertIn(app.seed, str(source.border_subtitle))
+            self.assertFalse(source.reveal)
+            await pilot.press("q")
+
+    async def test_reveal_changes_illumination_without_changing_terrain(self):
+        app = ForestApp("fern", seed="moss")
+        async with app.run_test(size=(90, 40)) as pilot:
+            source = app.query_one(WorldView)
+            x, y = app.world.pond
+            before = list(source.render_line(y))[x].style.bgcolor.triplet
+            self.assertEqual(before, app.palette.background)
+            terrain = app.world.terrain
+            source.reveal = True
+            source.refresh()
+            await pilot.pause()
+            after = list(source.render_line(y))[x].style.bgcolor.triplet
+            self.assertNotEqual(after, before)
+            self.assertIs(app.world.terrain, terrain)
+            self.assertFalse(app.world.passable(x,y))
