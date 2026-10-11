@@ -1,234 +1,150 @@
 # Nilavu
 
-Nilavu offers a seeded terminal landscape and a source viewer with a movable
-light. Nearby text and cells
-brighten through five shading levels, while distant text fades into darkness.
-Source stays real terminal text, with a visible cursor and scrolling that follows
-the illuminated area. A thin border uses your terminal's default foreground and
-background colors and resizes with the window, reserving one cell on each edge.
+A quiet terminal game about finding fireflies and bringing them home.
+Explore a seeded ASCII landscape of woodland, flowers, ruins, crystals, and
+water, lit by a movable light and small object glows. Wake three fireflies,
+let them follow you, and gather at the pond to reveal the whole landscape.
 
-Version 0.1.0 is an early release.
+Nilavu also includes a read-only source viewer with the same lighting effect.
+Version **0.1.0** is an early release; scenery and discovery balance are still
+being refined.
 
-## Setup
+## Install and play
 
-Requires Python 3.11 or newer and an interactive terminal. A terminal with RGB
-color support gives the intended appearance; fonts and glyph rendering come from
-your terminal.
+Requires **Python 3.11+**, Git, and an interactive terminal. RGB color support
+is recommended. Nilavu uses your terminal's font and runs in the current window.
 
-From the repository directory, create a virtual environment and install locally:
+Clone the repository, then install into a virtual environment.
 
-```bash
+### macOS / Linux
+
+```sh
+git clone https://github.com/jonathan-16bit/nilavu.git
+cd nilavu
 python3 -m venv .venv
-.venv/bin/python -m pip install -e .
+.venv/bin/python -m pip install .
+./dev run --game --seed fern
 ```
 
-These commands use macOS/Linux paths. On Windows, use `.venv\Scripts\python.exe`
-and `.venv\Scripts\nilavu.exe` instead of the corresponding `.venv/bin` paths.
+### Windows (PowerShell)
 
-## Use
-
-Explore a landscape without supplying a file:
-
-```bash
-./dev run --game --seed violet-after-rain
+```powershell
+git clone https://github.com/jonathan-16bit/nilavu.git
+cd nilavu
+py -3 -m venv .venv
+.venv\Scripts\python.exe -m pip install .
+.venv\Scripts\nilavu.exe --game --seed fern
 ```
 
-For the source viewer, run in your existing terminal. `./dev run` without arguments
-opens Nilavu's palette source file for a quick playground; supply any local code
-or text file to explore something else:
+The examples below use `./dev run`. On Windows, use
+`.venv\Scripts\nilavu.exe` in its place. With the virtual environment activated,
+you can use `nilavu` directly on either platform.
 
-```bash
-./dev run
-./dev run pyproject.toml
-```
+## How to play
+
+1. Explore with WASD, arrow keys, or `hjkl`. Look for bright white `i` fireflies.
+2. Move close and press **Space** when the top border says `Space: wake`.
+   Each awakened firefly joins you; the border tracks your progress.
+3. Once all three are awake, follow the top border's compass directions toward
+   the teal **`G`** marker on the pond's west bank. `G: NE` means northeast.
+4. Near the marker, press **Space** when prompted to gather. The fireflies settle
+   beside the water and the landscape lights up over two seconds.
+
+Stay and explore the revealed world, or press `r` for a fresh run.
+There are no enemies or time limits. Visiting the pond early preserves progress
+and tells you how many fireflies remain.
+
+Water, tree trunks, rocks, crystals, and ruin walls block movement. Flowers,
+foliage, ground, and stepping stones are walkable. The world is **180 × 48
+cells**; smaller terminals scroll as you move. A terminal of at least 182 columns
+by 50 rows fits the entire map. Resizing or changing font size changes how much
+you see, without enlarging the world.
+
+## Controls
 
 | Key | Action |
 | --- | --- |
-| `h`, `j`, `k`, `l` / arrow keys | Move left, down, up, and right. |
-| `w`, `a`, `s`, `d` | Move up, left, down, and right. |
-| Space (game only) | Wake a nearby sleeping firefly, or gather all three at the pond bank. |
-| `t` | Switch between moonlight and forest, remembering the forest seed. |
-| `r` | Game: start the next seeded world in either theme. Viewer: advance the forest palette seed; does nothing in moonlight. |
-| `q` | Quit and restore the terminal. |
+| WASD, arrow keys, or `hjkl` | Move. |
+| Space | Wake a nearby firefly or gather at the pond marker (game only). |
+| `t` | Switch between forest and moonlight colors. |
+| `r` | Game: start the next seeded world. Viewer: advance the forest palette seed. |
+| `q` | Quit. |
 
-In the viewer, the bottom border shows the theme and, for forest, the current seed. Long files
-and wide lines scroll when the light approaches a screen edge. Movement stays
-within the document's rectangular bounds, including empty space beside short lines.
-In the viewer, changing themes or seeds preserves the light and scroll positions.
-In the game, changing themes preserves progress; advancing the seed starts a fresh run.
+In the game, `r` resets progress in either theme. Changing themes or resizing
+preserves progress. In the viewer, `r` works only in forest; palette changes
+preserve your position.
 
-Configure the viewer when launching:
+## Seeds and appearance
 
-```bash
-./dev run pyproject.toml --radius 14 --cell-aspect-ratio 1.8
+```sh
+./dev run --game --seed violet-after-rain
+./dev run --game --theme moonlight --radius 18
 ```
 
-| Option | Default | Meaning |
+A seed is any text string, including hex-looking strings such as `7fa3`.
+In the game, it determines the terrain, scenery details, and firefly positions.
+The same seed recreates the same starting world in this version; future generator
+changes may alter it. `r` follows a repeatable sequence of seeds. Reuse the seed
+shown in the bottom border with `--seed` to return to its starting world.
+
+**Forest** uses seeded green and gold colors. **Moonlight** uses a fixed cool
+palette. Switching themes changes colors without changing the game map.
+Lighting uses five shading levels, with subtle lantern, crystal, and water
+animation. Character appearance depends on your terminal font.
+
+| Option | Default | Effect |
 | --- | --- | --- |
-| `--theme` | `moonlight` viewer, `forest` game | Starting palette family: `moonlight` or `forest`. |
-| `--seed` | `moss` | Starting forest seed, remembered even when launching in moonlight. |
-| `--radius` | `12` viewer, `16` game | Reach in terminal column-width units. Larger values expand the light. |
-| `--cell-aspect-ratio` | `2` | Cell height divided by width. Larger values compress the vertical reach. |
+| `--seed TEXT` | `moss` | Starting world seed, or forest palette seed in the viewer. |
+| `--theme NAME` | `forest` game; `moonlight` viewer | Choose `forest` or `moonlight`. |
+| `--radius NUMBER` | `16` game; `12` viewer | Light radius in terminal column widths. |
+| `--cell-aspect-ratio NUMBER` | `2` | Cell height divided by width; tune this if the light looks oval. |
+| `--reveal` | Off | Start with the whole map lit for inspection (game only). |
 
-Choose a coordinated text, cell-background, darkness, and cursor palette:
+Radius and aspect ratio must be finite positive numbers. Use
+`./dev run --help` for all command-line options.
 
-```bash
-./dev run pyproject.toml --theme moonlight
-./dev run pyproject.toml --theme forest --seed fern --radius 14
+## Source viewer
+
+Supply a local file instead of `--game`:
+
+```sh
+./dev run pyproject.toml
+./dev run src/nilavu/palette.py --theme forest --seed fern
 ```
 
-For the viewer, `--theme` accepts `moonlight` (the default, cool blue) or `forest`
-(seeded greens with a gold cursor). Forest generates one coordinated palette for the whole
-view. `--seed` accepts text and defaults to `moss`: the same seed repeats the same
-colors, while different seeds vary them within forest color ranges. Moonlight
-uses fixed colors and remembers your forest seed when you switch back.
+Move the light over the text using the same movement keys. Long files and wide
+lines scroll automatically. In this mode, seeds affect the forest palette,
+not the document. `./dev run` without arguments opens Nilavu's palette source
+for a quick demo.
 
-Seeds are text strings: `fern`, `12345`, and `7fa3` are all valid. Hex-looking
-strings are treated as text, not as base colors. The seed selects colors within
-the forest family's green and gold ranges; it does not depend on file contents.
-Using the same seed on another file gives the same palette. Different seeds
-can produce the same colors, so uniqueness is not guaranteed.
+The viewer reads regular UTF-8 files up to **1 MiB** without modifying them.
+Invalid UTF-8 and NUL-containing files are rejected. Tabs expand to four-column
+stops, and terminal controls and invisible formatting characters are displayed
+as escape notation. Source is rendered as literal text, never executed or parsed
+as markup. Unicode widths can vary between terminal fonts.
 
-In the viewer, while forest is active, `r` uses SHA-256 to hash the current seed
-into the next eight-character hexadecimal seed and applies its palette. Starting from the same seed repeats
-the same sequence; `r` does nothing in moonlight. Reuse any seed shown in the
-border with `--seed` to reproduce that palette and continue its sequence. Long
-status text is clipped to fit small terminals; control and non-ASCII characters
-in manually supplied seeds appear as escape notation.
+## Development
 
-Both themes keep the same five shading levels and movement; the border continues
-to use your terminal's colors.
+For local code changes, install in editable mode and run the tests:
 
-Radius and aspect ratio accept finite positive numbers, including decimals.
-Lighting and scrolling use the same settings. Scrolling margins shrink on small screens;
-document boundaries can still clip the light. Tune the aspect ratio to suit your
-terminal font rather than assuming every terminal has the same cell shape.
-
-See all options with `./dev run --help`. The launcher uses the existing virtual
-environment automatically. You can also activate it with
-`source .venv/bin/activate` and use `nilavu` directly.
-
-## Landscape experiment
-
-```bash
-./dev run --game --seed fern
-./dev run --game --seed fern --reveal
-```
-
-`--game` opens a fixed **180-column by 48-row** landscape. Colorful meadows
-have flowers and tall-grass tufts; woodland pockets have denser groves; rock
-gardens have slate-blue stones and violet crystals. Smaller flower and stone
-patches are distributed between the main regions. A short off-center stream
-has stepping stones and can also be walked around. A broken stone arch, an
-amber lantern clearing, and a blue pond provide distinct landmarks. The lantern and crystals
-cast small local glows, with no interactions yet.
-
-Water, trunks, rock clusters, crystals, and ruin walls block movement. Ground,
-foliage, flowers, tall grass, and stepping stones are walkable. Every
-walkable cell and landmark position is reachable from the initial clearing.
-Use the same movement keys and `q` to quit. Find three sleeping fireflies near
-the meadow, ruined arch, and rock garden. Each is a bright white `i` on reachable
-ground, with a faint pale pulsing halo that becomes visible when you approach it.
-The white body stays bright while the halo pulses, distinguishing it from amber
-lanterns and flower heads.
-The top border shows the awake count and `Space: wake` when within three
-column-width units (using the configured cell aspect ratio). Space wakes the
-nearest sleeper once; repeated presses cannot count it twice. Each awakened
-firefly joins you as a bright white `i` with a compact steady pale glow. Its cell
-keeps the surrounding terrain's background and lighting. Companions follow
-recent movement in wake order and hold their positions
-when you stop. Newly awakened companions appear on clear ground immediately,
-without rearranging the existing group. They catch up during fast movement and
-never block your path or cover scenery symbols; the cursor and sleeping discoveries
-take drawing priority. Collection remains permanent even when a companion shares
-the cursor's cell briefly in a crowded spot.
-
-Once all three are awake, the border's `G:` compass directions (`N`, `S`, `E`, `W`)
-guide you toward a teal `G` marker on the pond's west bank. The marker uses normal
-terrain lighting. Within six column-width units of it on walkable ground
-(using the configured cell aspect ratio), press Space
-to gather your companions and light up the landscape over two seconds. Visiting
-early shows how many fireflies remain; arrival alone never ends the run. The
-fireflies settle on clear shore cells, and completion depends on your collected
-count rather than their positions. Keep exploring the fully lit world afterward,
-or press `r` for another seed and a fresh run. Small terminals still scroll;
-lighting the entire map does not shrink it or change its size.
-
-The world has its own terminal-colored border. A terminal at least 182 columns
-by 50 rows displays the whole world; larger terminals center it in neutral space,
-and smaller terminals scroll. Changing font size or resizing changes only the
-viewport, never the generated world or movement bounds. Game mode defaults to a
-light radius of 16 columns; `--radius` overrides it. The ordinary viewer retains
-its radius of 12.
-
-Game scenery mixes standard keyboard punctuation with lowercase letters:
-light edges and `o` foliage, `|` trunks, `o/*` flower heads, `v` leafy bases,
-`~` ripples, and `x/:` stone textures. Trunks, crystals, lanterns, fireflies, and
-the gathering marker use bold text, keeping plants soft while accents remain
-clear. The lantern is a compact `[*]` on a post.
-
-Game mode never reads a source file; a path supplied with `--game` is rejected. The seed alone reproduces both terrain
-and scenery. Symbol choices have separate random state, so art refinements do
-not change terrain placement or landmark locations.
-
-Ordinary moss, grass, and clearings have blank text cells to keep walking ground
-uncluttered. Warm wood colors distinguish tree cores from muted clearings. Each
-scenery role has its own foreground color; both text and backgrounds respond to
-the same five lighting levels. Foliage and stone have directional highlights,
-flower centers have warm accents, and water has brighter blue ripple colors.
-Lanterns cast warm amber halos; crystals cast smaller violet halos. These
-object lights use the same stepped shading and cell aspect ratio as the cursor,
-and remain visible from a distance. Overlapping glows use the strongest light;
-they are atmospheric effects without obstacle shadows. Lantern light gently
-flickers, crystals pulse slowly at different phases, and sparse water highlights
-shift across the existing ripple characters. One timer advances a six-second
-loop twice per second; glow frames and color variations are cached when a world
-or theme changes. Animation changes only styling, preserving terrain, symbols,
-and the cursor highlight. Symbol appearance depends on your terminal font.
-
-Game mode starts with the forest palette unless `--theme` is supplied. `t`
-changes colors without changing terrain; `r` advances the seed and starts a new
-world at its initial clearing and resets firefly progress, in either theme.
-Changing themes or resizing preserves progress and companions. The same seed reproduces firefly
-positions as well as the landscape. `--reveal` lights the entire world
-for inspecting its composition, while leaving collisions active. It requires
-`--game` and is an experiment preview, not a completed game.
-
-## Input handling and current limits
-
-- Game mode needs no input file. The source viewer opens only the supplied local
-  file, read-only. Neither mode uses runtime networking or subprocess execution.
-- Inherited Textual diagnostic logging, debug features, developer-tool connections,
-  and automatic screenshots are disabled.
-- Accepts regular UTF-8 files up to 1 MiB. Invalid UTF-8 and NUL-containing files
-  are rejected.
-- Normalizes line endings, expands tabs at four-column stops, and displays
-  terminal controls and invisible formatting characters as escape notation.
-  File contents are displayed as literal text, never interpreted as markup.
-- Navigation counts terminal columns. Wide glyphs receive one style across both
-  columns, and combining marks stay with their base glyph. Partial wide glyphs
-  at viewport edges become spaces until the full glyph is visible. Actual glyph
-  widths can vary between terminal fonts.
-- Provides a source viewer and an experimental generated forest, using fixed
-  moonlight or seeded forest colors. There is no syntax highlighting, file
-  editing, saved configuration, or settings UI. Settings apply to the current
-  launch only.
-
-## Tests
-
-```bash
+```sh
+.venv/bin/python -m pip install -e .
 ./dev test
-./dev test -v
 ```
 
-`./dev help` lists development shortcuts. The `dev` script uses a POSIX shell
-(macOS/Linux). On Windows, use the commands directly:
+On Windows, use `.venv\Scripts\python.exe -m pip install -e .` and
+`.venv\Scripts\python.exe -m unittest discover -s tests`.
+`./dev help` lists the repository shortcuts.
 
-```powershell
-.venv\Scripts\python.exe -m unittest discover -s tests
-.venv\Scripts\nilavu.exe pyproject.toml
-```
+## Scope and privacy
+
+The game uses a fixed-size world, and runs and settings are not saved.
+The source viewer is read-only and has no syntax highlighting.
+
+Game mode requires no input file. Neither mode uses runtime networking or
+subprocess execution. Inherited Textual diagnostic logging, debug features,
+developer-tool connections, and automatic screenshots are disabled.
 
 ## License
 
-MIT; see [LICENSE](LICENSE).
+[MIT](LICENSE).
