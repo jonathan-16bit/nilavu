@@ -3,7 +3,6 @@
 import math
 
 from textual.content import Content, Span
-from textual.message import Message
 
 from nilavu.cells import visible_cells
 from nilavu.companions import companion_glow
@@ -63,9 +62,6 @@ TERRAIN_FOREGROUNDS = {
 class WorldView(SourceView):
     """A bounded world viewport; its widget border separates it from extra space."""
 
-    class AnimationTick(Message):
-        """Let the game gather companions using the existing scenery clock."""
-
     def __init__(self, world: World, light: LightPosition, palette: Palette,
                  *, light_settings: LightSettings, reveal: bool = False,
                  fireflies: tuple[Firefly, ...] = ()) -> None:
@@ -118,7 +114,6 @@ class WorldView(SourceView):
 
     def _advance_animation(self) -> None:
         self._animation_frame = (self._animation_frame + 1) % ANIMATION_FRAMES
-        self.post_message(self.AnimationTick())
         self.refresh()
 
     def update_palette(self, palette: Palette) -> None:
@@ -191,16 +186,16 @@ class WorldView(SourceView):
                 cursor_background=palette.cursor_background,
             )
         self._companion_palette = Palette(
-            background=palette.background, foreground=(255, 246, 194),
-            cell_background=(63, 66, 46), cursor_background=palette.cursor_background,
+            background=palette.background, foreground=(255, 255, 255),
+            cell_background=(10, 20, 26), cursor_background=palette.cursor_background,
         )
         roles = {cell for row in self._cell_palettes for cell in row}
         roles.update(self._water_palettes.values())
         roles.update(self._dim_accent_palettes.values())
         self._companion_palettes = {
             cell: Palette(background=palette.background,
-                          foreground=mix(cell.foreground, (255, 246, 194), 0.20),
-                          cell_background=mix(cell.cell_background, (130, 120, 68), 0.20),
+                          foreground=mix(cell.foreground, (245, 253, 255), 0.30),
+                          cell_background=mix(cell.cell_background, (121, 156, 166), 0.30),
                           cursor_background=palette.cursor_background)
             for cell in roles
         }

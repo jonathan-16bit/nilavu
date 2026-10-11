@@ -89,10 +89,6 @@ class ForestApp(NilavuApp):
             self.query_one(WorldView).update_companions(self.companions.positions)
         self._update_status()
 
-    def on_world_view_animation_tick(self, event: WorldView.AnimationTick) -> None:
-        self.companions = self.companions.idle(self.world, self.light_settings.cell_aspect_ratio)
-        self.query_one(WorldView).update_companions(self.companions.positions)
-
     def action_wake_firefly(self) -> None:
         run = self.firefly_run.wake_nearby((self.light_position.x, self.light_position.y),
                                   self.light_settings.cell_aspect_ratio)
@@ -106,7 +102,8 @@ class ForestApp(NilavuApp):
                 self.companions = self.companions.follow(
                     self.world, (self.light_position.x, self.light_position.y),
                     self.light_settings.cell_aspect_ratio)
-            self.companions = self.companions.add(awakened)
+            self.companions = self.companions.add(
+                self.world, awakened, self.light_settings.cell_aspect_ratio)
             self.query_one(WorldView).update_fireflies(run.fireflies)
             self.query_one(WorldView).update_companions(self.companions.positions)
         self._update_status()

@@ -1,6 +1,7 @@
 """Exercise collisions, fixed map boundaries, resizing, and game seeds."""
 
 import unittest
+from rich.style import Style
 from textual.geometry import Region
 
 from nilavu.game import ForestApp
@@ -12,7 +13,7 @@ from nilavu.world import Terrain
 
 
 class GameTests(unittest.IsolatedAsyncioTestCase):
-    async def test_companions_follow_gather_and_reset_without_losing_progress(self):
+    async def test_companions_follow_hold_position_and_reset_without_losing_progress(self):
         app = ForestApp(seed="fern")
         async with app.run_test(size=(200, 60)) as pilot:
             source = app.query_one(WorldView)
@@ -29,14 +30,19 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotEqual(app.light_position, start)
             self.assertEqual(source.companion_positions, app.companions.positions)
             self.assertEqual(app.firefly_run.awake_count, 1)
-            for _ in range(2):
+            resting = app.companions.positions
+            for _ in range(12):
                 source._advance_animation()
                 await pilot.pause()
-            self.assertEqual(app.companions.idle_ticks, 2)
+                self.assertEqual(app.companions.positions, resting)
+                self.assertEqual(source.companion_positions, resting)
             self.assertNotIn((app.light_position.x, app.light_position.y), app.companions.positions)
             x, y = app.companions.positions[0]
             content = source.render()
             self.assertEqual(content.plain.splitlines()[y][x], "i")
+            body = Style.parse(content.spans[y * world.width + x].style)
+            self.assertEqual(body.color.triplet, (255, 255, 255))
+            self.assertEqual(body.bgcolor.triplet, (10, 20, 26))
             self.assertEqual(app.world.lines[y][x], " ")
             self.assertIs(app.world, world)
             group = app.companions

@@ -13,7 +13,8 @@ COMPANION_RADIUS = 6.0
 
 
 def _quiet_positions(world: World, cursor: tuple[int, int], targets: tuple[tuple[int, int], ...],
-                     cell_aspect_ratio: float) -> tuple[tuple[int, int], ...]:
+                     cell_aspect_ratio: float,
+                     occupied: tuple[tuple[int, int], ...] = ()) -> tuple[tuple[int, int], ...]:
     """Prefer blank ground near each target, keeping symbols and companions clear."""
     cx, cy = cursor
     ry = math.ceil(min(world.height, 12 / cell_aspect_ratio))
@@ -24,7 +25,7 @@ def _quiet_positions(world: World, cursor: tuple[int, int], targets: tuple[tuple
                   and math.hypot(x - cx, (y - cy) * cell_aspect_ratio) <= 12]
     positions = []
     for tx, ty in targets:
-        available = [cell for cell in candidates if cell not in positions]
+        available = [cell for cell in candidates if cell not in positions and cell not in occupied]
         position = min(available,
                        key=lambda p: math.hypot(p[0] - tx, (p[1] - ty) * cell_aspect_ratio),
                        default=cursor)
@@ -40,10 +41,12 @@ class Companions:
 
     trail: tuple[tuple[int, int], ...]
     positions: tuple[tuple[int, int], ...] = ()
-    idle_ticks: int = 0
-
-    def add(self, position: tuple[int, int]) -> "Companions":
-        return replace(self, positions=self.positions + (position,))
+    def add(self, world: World, position: tuple[int, int], cell_aspect_ratio: float) -> "Companions":
+        # Place the new body immediately, without moving existing companions or
+        # requiring a later timer-driven rearrangement to make it visible.
+        placed = _quiet_positions(world, self.trail[0], (position,),
+                                  cell_aspect_ratio, occupied=self.positions)
+        return replace(self, positions=self.positions + placed)
 
     def follow(self, world: World, cursor: tuple[int, int], cell_aspect_ratio: float) -> "Companions":
         trail = (cursor,) + self.trail[:TRAIL_SPACING * FIREFLY_COUNT]
@@ -53,18 +56,6 @@ class Companions:
         # Deriving positions from the recent trail makes catch-up automatic,
         # regardless of how many movement events arrive between timer ticks.
         return Companions(trail, positions)
-
-    def idle(self, world: World, cell_aspect_ratio: float) -> "Companions":
-        if not self.positions:
-            return self
-        ticks = min(2, self.idle_ticks + 1)
-        if ticks < 2:
-            return replace(self, idle_ticks=ticks)
-        x, y = self.trail[0]
-        offsets = ((-2, -1), (2, -1), (0, 1))
-        targets = tuple((x + dx, y + dy) for dx, dy in offsets[:len(self.positions)])
-        return replace(self, idle_ticks=ticks,
-                       positions=_quiet_positions(world, (x, y), targets, cell_aspect_ratio))
 
 
 def companion_glow(world: World, positions: tuple[tuple[int, int], ...],

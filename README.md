@@ -133,10 +133,11 @@ lanterns and flower heads.
 The top border shows the awake count and `Space: wake` when within three
 column-width units (using the configured cell aspect ratio). Space wakes the
 nearest sleeper once; repeated presses cannot count it twice. Each awakened
-firefly joins you as a pale warm `i` with a small steady glow. Companions follow
-recent movement in wake order and gather on nearby blank ground after about a
-second of stillness. They catch up automatically during fast movement and never
-block your path or cover scenery symbols; the cursor and sleeping discoveries
+firefly joins you as a bright white `i` on a dark cell, with a small steady pale
+glow. Companions follow recent movement in wake order and hold their positions
+when you stop. Newly awakened companions appear on clear ground immediately,
+without rearranging the existing group. They catch up during fast movement and
+never block your path or cover scenery symbols; the cursor and sleeping discoveries
 take drawing priority. Collection remains permanent even when a companion shares
 the cursor's cell briefly in a crowded spot. The pond finale is not implemented
 yet, so waking all three currently shows `all awake` and lets you keep exploring.
