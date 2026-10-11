@@ -105,14 +105,14 @@ environment automatically. You can also activate it with
 ./dev run src/nilavu/palette.py --game --seed fern --reveal
 ```
 
-`--game` opens a fixed **60-column by 24-row** woodland with moss, grass,
+`--game` opens a fixed **100-column by 40-row** woodland with moss, grass,
 earthy clearings, small groves, and a pond. Most ground and foliage are walkable;
 water and tree cores block movement. Use the same movement keys and `q` to quit.
 This is a terrain experiment: fireflies, Space interactions, followers, and the
 pond finale are not implemented yet.
 
-The world has its own terminal-colored border. A terminal at least 62 columns
-by 26 rows displays the whole world; larger terminals center it in neutral space,
+The world has its own terminal-colored border. A terminal at least 102 columns
+by 42 rows displays the whole world; larger terminals center it in neutral space,
 and smaller terminals scroll. Changing font size or resizing changes only the
 viewport, never the generated world or movement bounds.
 

@@ -10,8 +10,8 @@ import random
 from nilavu.cells import line_width, visible_cells
 from nilavu.navigation import LightPosition
 
-WORLD_WIDTH = 60
-WORLD_HEIGHT = 24
+WORLD_WIDTH = 100
+WORLD_HEIGHT = 40
 
 
 class Terrain(Enum):
@@ -110,12 +110,14 @@ def generate_world(source_text: str, seed: str) -> World:
     terrain = [[Terrain.MOSS] * WORLD_WIDTH for _ in range(WORLD_HEIGHT)]
     spawn = (6, WORLD_HEIGHT // 2)
     # Broad overlapping patches suggest ground cover rather than prescribed paths.
-    for _ in range(24):
+    # Keep patch density consistent when the trial world dimensions change.
+    for _ in range(WORLD_WIDTH * WORLD_HEIGHT // 60):
         kind = rng.choice((Terrain.GRASS, Terrain.GRASS, Terrain.EARTH))
         for x, y in _ellipse(rng.randrange(WORLD_WIDTH), rng.randrange(WORLD_HEIGHT),
                              rng.randrange(4, 10), rng.randrange(2, 5)):
             terrain[y][x] = kind
-    pond = (rng.randrange(39, 49), rng.randrange(7, 17))
+    pond = (rng.randrange(WORLD_WIDTH * 65 // 100, WORLD_WIDTH * 81 // 100),
+            rng.randrange(WORLD_HEIGHT * 30 // 100, WORLD_HEIGHT * 70 // 100))
     for x, y in _ellipse(*pond, 8, 4):
         terrain[y][x] = Terrain.EARTH
     for x, y in _ellipse(*pond, 6, 3):
@@ -123,8 +125,8 @@ def generate_world(source_text: str, seed: str) -> World:
 
     # Small separated cores give trees collision without forming walls. Leaves
     # remain passable, and the pond retains a generous surrounding bank.
-    for _ in range(80):
-        cx, cy = rng.randrange(3, 56), rng.randrange(2, 22)
+    for _ in range(WORLD_WIDTH * WORLD_HEIGHT // 18):
+        cx, cy = rng.randrange(3, WORLD_WIDTH - 4), rng.randrange(2, WORLD_HEIGHT - 2)
         if abs(cx - spawn[0]) < 8 and abs(cy - spawn[1]) < 4:
             continue
         if any(terrain[y][x] in BLOCKED

@@ -12,8 +12,11 @@ class WorldTests(unittest.TestCase):
         for seed in range(40):
             with self.subTest(seed=seed):
                 world = generate_world("def grow_tree(): return moss", str(seed))
-                self.assertEqual((world.width, world.height), (60, 24))
+                self.assertEqual((world.width, world.height), (100, 40))
                 self.assertTrue(world.passable(*world.spawn))
+                # Groves must occupy the added area, not just the old map bounds.
+                self.assertTrue(any(cell == Terrain.CANOPY
+                                    for row in world.terrain[24:] for cell in row[60:]))
                 self.assertEqual(world.terrain[world.pond[1]][world.pond[0]], Terrain.WATER)
                 seen = {world.spawn}
                 queue = deque(seen)
@@ -26,9 +29,9 @@ class WorldTests(unittest.TestCase):
                 ground = {(x,y) for y in range(world.height) for x in range(world.width)
                           if world.passable(x,y)}
                 self.assertEqual(seen, ground)
-                self.assertGreater(len(ground), 60 * 24 * 0.85)
+                self.assertGreater(len(ground), 100 * 40 * 0.85)
                 self.assertFalse(world.passable(-1, 0))
-                self.assertFalse(world.passable(60, 0))
+                self.assertFalse(world.passable(100, 0))
 
     def test_seed_repeatability_and_file_structure_does_not_determine_terrain(self):
         first = generate_world("short", "fern")
@@ -42,12 +45,12 @@ class WorldTests(unittest.TestCase):
                      " ".join(f"word{n}" for n in range(10000))):
             with self.subTest(length=len(text)):
                 world = generate_world(text, "fern")
-                self.assertEqual(len(world.lines), 24)
-                self.assertTrue(all(line_width(line) == 60 for line in world.lines))
+                self.assertEqual(len(world.lines), 40)
+                self.assertTrue(all(line_width(line) == 100 for line in world.lines))
                 self.assertLess(len(world.text), 100000)
                 if not text:
                     self.assertEqual(set(world.text), {" ", "\n"})
                 if text == "fern":
-                    self.assertGreater(world.text.count("fern"), 24)
+                    self.assertGreater(world.text.count("fern"), 40)
         sampled = generate_world(" ".join(f"word{n}" for n in range(10000)), "fern").text
         self.assertTrue(any(int(word[4:]) > 5000 for word in sampled.split()))

@@ -12,21 +12,21 @@ from nilavu.world_view import WorldView
 class GameTests(unittest.IsolatedAsyncioTestCase):
     async def test_world_stays_fixed_when_zooming_out_and_in(self):
         app = ForestApp("fern", seed="pond", reveal=True)
-        async with app.run_test(size=(90, 40)) as pilot:
+        async with app.run_test(size=(120, 50)) as pilot:
             world = app.world
             source = app.query_one(WorldView)
-            self.assertEqual(source.size.width, 60)
-            self.assertEqual(source.size.height, 24)
-            self.assertEqual(source.region, Region(14, 7, 62, 26))
-            self.assertEqual(len(source.render_line(0).text), 60)
+            self.assertEqual(source.size.width, 100)
+            self.assertEqual(source.size.height, 40)
+            self.assertEqual(source.region, Region(9, 4, 102, 42))
+            self.assertEqual(len(source.render_line(0).text), 100)
             self.assertTrue(app.screen.styles.background.ansi == -1)
             await pilot.resize_terminal(30, 12)
             self.assertIs(app.world, world)
             self.assertEqual((source.size.width, source.size.height), (28, 10))
             self.assertGreater(source.viewport.y, 0)
-            await pilot.resize_terminal(100, 50)
+            await pilot.resize_terminal(130, 60)
             self.assertIs(app.world, world)
-            self.assertEqual((source.size.width, source.size.height), (60, 24))
+            self.assertEqual((source.size.width, source.size.height), (100, 40))
             self.assertEqual((source.viewport.x, source.viewport.y), (0, 0))
             await pilot.resize_terminal(1, 1)
             await pilot.press("q")
@@ -45,7 +45,7 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
                 else:
                     continue
                 break
-            app.light_position = LightPosition(59, 23, *start)
+            app.light_position = LightPosition(app.world.width - 1, app.world.height - 1, *start)
             source.update_light(app.light_position)
             await pilot.press("right")
             self.assertEqual((app.light_position.x, app.light_position.y), start)
@@ -63,7 +63,7 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_reveal_changes_illumination_without_changing_terrain(self):
         app = ForestApp("fern", seed="moss")
-        async with app.run_test(size=(90, 40)) as pilot:
+        async with app.run_test(size=(120, 50)) as pilot:
             source = app.query_one(WorldView)
             x, y = app.world.pond
             before = list(source.render_line(y))[x].style.bgcolor.triplet
