@@ -118,7 +118,7 @@ gardens have slate-blue stones and violet crystals. Smaller flower and stone
 patches are distributed between the main regions. A short off-center stream
 has stepping stones and can also be walked around. A broken stone arch, an
 amber lantern clearing, and a blue pond provide distinct landmarks. The lantern and crystals
-are decorative scenery, with no separate light sources or interactions yet.
+cast small local glows, with no interactions yet.
 
 Water, trunks, rock clusters, crystals, and ruin walls block movement. Ground,
 foliage, flowers, tall grass, and stepping stones are walkable. Every
@@ -146,7 +146,13 @@ not change terrain placement or landmark locations.
 Ordinary moss, grass, and clearings have blank text cells to keep walking ground
 uncluttered. Warm wood colors distinguish tree cores from muted clearings. Each
 scenery role has its own foreground color; both text and backgrounds respond to
-the same five lighting levels. Symbol appearance depends on your terminal font.
+the same five lighting levels. Foliage and stone have directional highlights,
+flower centers have warm accents, and water has brighter blue ripple colors.
+Lanterns cast warm amber halos; crystals cast smaller violet halos. These static
+object lights use the same stepped shading and cell aspect ratio as the cursor,
+and remain visible from a distance. Overlapping glows use the strongest light;
+they are atmospheric effects without obstacle shadows. Color variation is cached
+when a world or theme changes. Symbol appearance depends on your terminal font.
 
 Game mode starts with the forest palette unless `--theme` is supplied. `t`
 changes colors without changing terrain; `r` advances the seed and starts a new

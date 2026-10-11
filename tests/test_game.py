@@ -100,3 +100,20 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             x, y = app.world.pond
             self.assertNotEqual(list(source.render_line(y))[x].style.color.triplet,
                                 colors[Terrain.WATER])
+
+    async def test_object_glow_survives_cursor_distance_and_refreshes_with_seed(self):
+        app = ForestApp(seed="fern")
+        async with app.run_test(size=(200, 60)) as pilot:
+            source = app.query_one(WorldView)
+            def lantern_color():
+                x, y = next(mark.position for mark in app.world.landmarks
+                            if mark.name == "lantern clearing")
+                return list(source.render_line(y))[x].style.bgcolor.triplet
+            self.assertNotEqual(lantern_color(), app.palette.background)
+            terrain, lines = app.world.terrain, app.world.lines
+            await pilot.press("t")
+            self.assertNotEqual(lantern_color(), app.palette.background)
+            self.assertEqual(app.world.terrain, terrain)
+            self.assertEqual(app.world.lines, lines)
+            await pilot.press("r")
+            self.assertNotEqual(lantern_color(), app.palette.background)

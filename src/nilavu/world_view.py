@@ -5,6 +5,7 @@ from textual.content import Content, Span
 from nilavu.cells import visible_cells
 from nilavu.lighting import LightSettings, brightness_at
 from nilavu.navigation import LightPosition
+from nilavu.object_lighting import glow_field
 from nilavu.palette import Palette
 from nilavu.source_view import SourceView
 from nilavu.viewport import Viewport
@@ -59,6 +60,7 @@ class WorldView(SourceView):
                  *, light_settings: LightSettings, reveal: bool = False) -> None:
         super().__init__(world.text, light, palette, light_settings=light_settings)
         self.world = world
+        self._glows = glow_field(world, light_settings.cell_aspect_ratio)
         self.reveal = reveal
         self.add_class("game-world")
         self.styles.width = world.width + 2
@@ -67,20 +69,47 @@ class WorldView(SourceView):
 
     def update_palette(self, palette: Palette) -> None:
         self.palette = palette
-        self._terrain_palettes = {
-            kind: Palette(
-                background=palette.background,
-                foreground=tuple((3 * color + tint) // 4 for color, tint in
-                                 zip(TERRAIN_FOREGROUNDS[kind], palette.foreground)),
-                cell_background=tuple((3 * color + tint) // 4
-                                      for color, tint in zip(rgb, palette.cell_background)),
-                cursor_background=palette.cursor_background,
-            ) for kind, rgb in TERRAIN_COLORS.items()
-        }
+        # Cache per-cell color roles only on world/theme changes. Cursor movement
+        # chooses one of the same five shades, without rebuilding terrain colors.
+        def mix(first, second, amount):
+            return tuple(round(a + (b - a) * amount) for a, b in zip(first, second))
+
+        def shift(rgb, amount):
+            return tuple(max(0, min(255, c + amount)) for c in rgb)
+
+        palettes = []
+        for y, row in enumerate(self.world.terrain):
+            colors = []
+            for x, kind in enumerate(row):
+                fg, bg = TERRAIN_FOREGROUNDS[kind], TERRAIN_COLORS[kind]
+                # Broad quiet variation on ground; directional highlights on
+                # foliage, stone, and water keep objects from looking flat.
+                if kind in (Terrain.CANOPY, Terrain.ROCK, Terrain.RUIN):
+                    above = self.world.terrain[y - 1][x] if y else None
+                    delta = 12 if above != kind else -4
+                else:
+                    delta = (((x // 8) * 17 + (y // 4) * 13) % 3 - 1) * 4
+                fg, bg = shift(fg, delta), shift(bg, delta)
+                if kind in (Terrain.FLOWER, Terrain.GOLD_FLOWER) and self.world.lines[y][x] == "*":
+                    fg = (255, 223, 166)  # Small warm centers contrast with petals.
+                if kind == Terrain.WATER:
+                    fg = (151, 218, 236)
+                    bg = (bg[0], bg[1] + 7, bg[2] + 12)
+                fg = mix(fg, palette.foreground, 0.20)
+                bg = mix(bg, palette.cell_background, 0.20)
+                glow = self._glows[y][x]
+                fg = mix(fg, glow.color, glow.brightness * 0.35)
+                bg = mix(bg, glow.color, glow.brightness * 0.18)
+                colors.append(Palette(background=palette.background, foreground=fg,
+                                      cell_background=bg, cursor_background=palette.cursor_background))
+            palettes.append(tuple(colors))
+        self._cell_palettes = tuple(palettes)
         self.refresh()
 
     def update_world(self, world: World, light: LightPosition) -> None:
         self.world = world
+        self._glows = glow_field(world, self.light_settings.cell_aspect_ratio)
+        self.update_palette(self.palette)
         self._lines = list(world.lines)
         self._cell_indexes = {}
         self.viewport = Viewport()
@@ -101,7 +130,8 @@ class WorldView(SourceView):
                     self.light_settings.radius,
                     cell_aspect_ratio=self.light_settings.cell_aspect_ratio)
                 kind = self.world.terrain[y][x]
-                style = self._terrain_palettes[kind].style_at(intensity)
+                intensity = max(intensity, self._glows[y][x].brightness)
+                style = self._cell_palettes[y][x].style_at(intensity)
                 # Keep foliage light; reserve heavier text for small accents.
                 if kind in (Terrain.TRUNK, Terrain.CRYSTAL, Terrain.LANTERN):
                     style += " bold"
