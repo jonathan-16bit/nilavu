@@ -114,13 +114,14 @@ environment automatically. You can also activate it with
 
 `--game` opens a fixed **180-column by 48-row** landscape. Colorful meadows
 have flowers and tall-grass tufts; woodland pockets have denser groves; rock
-gardens have slate-blue stones and violet crystals. A wandering stream has a
-wooden bridge and stepping stones. A broken stone arch, an amber lantern
-clearing, and a blue pond provide distinct landmarks. The lantern and crystals
+gardens have slate-blue stones and violet crystals. Smaller flower and stone
+patches are distributed between the main regions. A short off-center stream
+has stepping stones and can also be walked around. A broken stone arch, an
+amber lantern clearing, and a blue pond provide distinct landmarks. The lantern and crystals
 are decorative scenery, with no separate light sources or interactions yet.
 
 Water, trunks, rock clusters, crystals, and ruin walls block movement. Ground,
-foliage, flowers, tall grass, bridges, and stepping stones are walkable. Every
+foliage, flowers, tall grass, and stepping stones are walkable. Every
 walkable cell and landmark position is reachable from the initial clearing.
 Use the same movement keys and `q` to quit. Fireflies, Space interactions,
 followers, and the pond finale are not implemented yet.
@@ -132,9 +133,12 @@ viewport, never the generated world or movement bounds. Game mode defaults to a
 light radius of 16 columns; `--radius` overrides it. The ordinary viewer retains
 its radius of 12.
 
-Game mode uses curated single-column symbols for foliage, wood grain, flowers,
-water ripples, stone, crystals, planks, and masonry. It never reads a source file;
-a path supplied with `--game` is rejected. The seed alone reproduces both terrain
+Game scenery uses standard keyboard characters: `O/o` foliage, `H` wood grain,
+`o/@` flower heads, `W/v` leafy bases, `~` ripples, and heavier stone and masonry
+textures. Foliage, petals, and accents use bold text for more body. The lantern
+is a compact `[O]` on a post.
+
+Game mode never reads a source file; a path supplied with `--game` is rejected. The seed alone reproduces both terrain
 and scenery. Symbol choices have separate random state, so art refinements do
 not change terrain placement or landmark locations.
 

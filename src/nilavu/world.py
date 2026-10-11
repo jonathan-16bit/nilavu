@@ -27,7 +27,6 @@ class Terrain(Enum):
     STONE = "stone"
     ROCK = "rock"
     CRYSTAL = "crystal"
-    BRIDGE = "bridge"
     STEPPING_STONE = "stepping_stone"
     RUIN = "ruin"
     LANTERN = "lantern"
@@ -152,37 +151,36 @@ def _scenery_rows(terrain: tuple[tuple[Terrain, ...], ...], seed: str) -> tuple[
                              ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)))
                 # Soft rims and denser interiors read as leafy crowns, rather
                 # than unrelated characters spread across a colored patch.
-                glyph = "·" if around < 3 else rng.choice("░░▒")
+                glyph = "o" if around < 3 else rng.choice("OOOo")
             elif kind == Terrain.TRUNK:
-                glyph = "║"
+                glyph = "H"
             elif kind == Terrain.WATER:
                 # Calm broken ripple bands leave enough solid blue to read water.
                 if y % 2 == 0 and (x + y) % 5 < 3:
                     glyph = "~"
             elif kind in (Terrain.FLOWER, Terrain.GOLD_FLOWER):
-                glyph = "*" if neighbor(x - 1, y) == kind and neighbor(x + 1, y) == kind else "·"
+                glyph = "@" if neighbor(x - 1, y) == kind and neighbor(x + 1, y) == kind else "o"
             elif kind == Terrain.TALL_GRASS:
-                glyph = rng.choice("╱│╲ ")
+                glyph = rng.choice("WWv ")
             elif kind == Terrain.ROCK:
-                glyph = "▒" if neighbor(x, y - 1) == Terrain.ROCK else "▄"
+                glyph = "#" if neighbor(x, y - 1) == Terrain.ROCK else "%"
             elif kind == Terrain.CRYSTAL:
-                glyph = "◆"
-            elif kind == Terrain.BRIDGE:
-                glyph = "═" if neighbor(x, y - 1) != kind or neighbor(x, y + 1) != kind else "│"
+                glyph = "A"
             elif kind == Terrain.STEPPING_STONE:
-                glyph = "▪"
+                glyph = "="
             elif kind == Terrain.RUIN:
                 # Connected masonry distinguishes a lintel from upright pillars.
                 left, right = neighbor(x - 1, y) == kind, neighbor(x + 1, y) == kind
                 below = neighbor(x, y + 1) == kind
                 if below and right and not left:
-                    glyph = "┌"
+                    glyph = "+"
                 elif below and left and not right:
-                    glyph = "┐"
+                    glyph = "+"
                 else:
-                    glyph = "─" if left or right else "│"
+                    glyph = "#" if left or right else "H"
             elif kind == Terrain.LANTERN:
-                glyph = "✦" if neighbor(x - 1, y) == kind and neighbor(x + 1, y) == kind else "·"
+                left, right = neighbor(x - 1, y) == kind, neighbor(x + 1, y) == kind
+                glyph = "O" if left and right else "]" if left else "[" if right else "H"
             parts.append(glyph)
         rows.append("".join(parts))
     return tuple(rows)
@@ -221,33 +219,43 @@ def generate_world(seed: str) -> World:
         _paint(terrain, kind, center, rx, ry)
     _paint(terrain, Terrain.WATER, pond, 8, 4)
 
-    # A narrow wandering stream crosses the map. Two guaranteed crossings make
-    # both banks accessible, even before optional scenery is placed.
-    stream = []
-    cx = rng.randrange(83, 94)
-    for y in range(WORLD_HEIGHT):
-        cx = max(81, min(96, cx + rng.choice((-1, 0, 0, 1))))
-        stream.append(cx)
+    # Water stays off-center and ends inside the map. Walking around its ends
+    # avoids forcing every journey across a central bridge.
+    stream = {}
+    cx = rng.randrange(153, 166)
+    for y in range(4, 23):
+        cx = max(151, min(169, cx + rng.choice((-1, 0, 0, 1))))
+        stream[y] = cx
         for x in range(cx - 1, cx + 3):
             terrain[y][x] = Terrain.EARTH
         terrain[y][cx] = terrain[y][cx + 1] = Terrain.WATER
-    bridge_y = WORLD_HEIGHT // 2
-    for y in range(bridge_y - 1, bridge_y + 2):
-        for x in range(min(stream[bridge_y - 1:bridge_y + 2]) - 3,
-                       max(stream[bridge_y - 1:bridge_y + 2]) + 5):
-            terrain[y][x] = Terrain.BRIDGE
-    stones_y = 10
+    stones_y = rng.randrange(19, 22)
     for x in range(stream[stones_y], stream[stones_y] + 2):
         terrain[stones_y][x] = Terrain.STEPPING_STONE
-    landmarks += (Landmark("bridge", (stream[bridge_y], bridge_y)),
-                  Landmark("stepping stones", (stream[stones_y], stones_y)),
+    landmarks += (Landmark("stepping stones", (stream[stones_y], stones_y)),
                   Landmark("pond bank", (pond[0] - 9, pond[1])))
 
+    # Small secondary patches spread color across the map, while the larger
+    # named regions remain useful destinations. No patch overwrites water.
+    meadows, gardens = [meadow], [garden]
+    for row in range(3):
+        for column in range(4):
+            center = (20 + column * 42 + rng.randrange(-8, 9),
+                      8 + row * 15 + rng.randrange(-2, 3))
+            if any(abs(center[0] - mark.position[0]) < 15
+                   and abs(center[1] - mark.position[1]) < 6 for mark in landmarks):
+                continue
+            cells = tuple(_ellipse(*center, 9, 3))
+            if not all(terrain[y][x] in (Terrain.MOSS, Terrain.GRASS, Terrain.EARTH)
+                       for x, y in cells):
+                continue
+            rocky = (row + column) % 3 == 0
+            _paint(terrain, Terrain.STONE if rocky else Terrain.MEADOW, center, 9, 3)
+            (gardens if rocky else meadows).append(center)
+
     # Groves are denser locally, with open surroundings around each landmark.
-    groves = ((22, 25), (62, 20), (64, 39), (113, 14), (165, 12))
     for _ in range(WORLD_WIDTH * WORLD_HEIGHT // 32):
-        gx, gy = rng.choice(groves)
-        cx, cy = gx + rng.randrange(-15, 16), gy + rng.randrange(-7, 8)
+        cx, cy = rng.randrange(5, WORLD_WIDTH - 5), rng.randrange(3, WORLD_HEIGHT - 3)
         if not (4 <= cx < WORLD_WIDTH - 5 and 3 <= cy < WORLD_HEIGHT - 3):
             continue
         if abs(cx - spawn[0]) < 8 and abs(cy - spawn[1]) < 4:
@@ -261,27 +269,28 @@ def generate_world(seed: str) -> World:
         _paint(terrain, Terrain.CANOPY, (cx, cy), 4, 2)
         terrain[cy][cx] = terrain[cy][cx + 1] = Terrain.TRUNK
 
-    # Meadows carry intentional grass tufts and colorful blooms; ordinary ground
-    # remains blank. Placement cannot alter the stream or its crossings.
-    for _ in range(65):
-        cx, cy = meadow[0] + rng.randrange(-17, 18), meadow[1] + rng.randrange(-6, 7)
-        cells = tuple(_ellipse(cx, cy, 2, 1))
-        if cells and all(terrain[y][x] == Terrain.MEADOW for x, y in cells):
+    # Rounded flower heads and leafy bases replace thin, scattered grass marks.
+    for index, center in enumerate(meadows):
+        rx, ry = (17, 6) if index == 0 else (7, 2)
+        for _ in range(45 if index == 0 else 12):
+            cx, cy = center[0] + rng.randrange(-rx, rx + 1), center[1] + rng.randrange(-ry, ry + 1)
+            cells = tuple(_ellipse(cx, cy, 3, 2))
+            if not cells or not all(terrain[y][x] == Terrain.MEADOW for x, y in cells):
+                continue
             for x, y in cells:
                 terrain[y][x] = Terrain.TALL_GRASS
-            bloom = rng.choice((Terrain.FLOWER, Terrain.GOLD_FLOWER))
-            for x in range(cx - 1, cx + 2):
-                terrain[cy][x] = bloom
-    for _ in range(25):
-        cx, cy = garden[0] + rng.randrange(-12, 13), garden[1] + rng.randrange(-4, 5)
-        cells = tuple(_ellipse(cx, cy, 2, 1))
-        if (cells and all(terrain[y][x] == Terrain.STONE for x, y in cells)
-                and not any(abs(x - garden[0]) < 3 and abs(y - garden[1]) < 2
-                            for x, y in cells)):
-            for x, y in cells:
-                terrain[y][x] = Terrain.ROCK
-            # Sparkling tips are decoration; the surrounding rock still blocks.
-            terrain[cy][cx] = Terrain.CRYSTAL
+            _paint(terrain, rng.choice((Terrain.FLOWER, Terrain.GOLD_FLOWER)), (cx, cy), 2, 1)
+    for index, center in enumerate(gardens):
+        rx, ry = (12, 4) if index == 0 else (6, 2)
+        for _ in range(25 if index == 0 else 10):
+            cx, cy = center[0] + rng.randrange(-rx, rx + 1), center[1] + rng.randrange(-ry, ry + 1)
+            cells = tuple(_ellipse(cx, cy, 2, 1))
+            if (cells and all(terrain[y][x] == Terrain.STONE for x, y in cells)
+                    and not any(abs(x - center[0]) < 3 and abs(y - center[1]) < 2
+                                for x, y in cells)):
+                for x, y in cells:
+                    terrain[y][x] = Terrain.ROCK
+                terrain[cy][cx] = Terrain.CRYSTAL
     # Broken stone sides and a lintel frame a walkable center passage.
     ax, ay = arch
     for x in range(ax - 5, ax + 6):
@@ -289,11 +298,11 @@ def generate_world(seed: str) -> World:
             terrain[ay - 2][x] = Terrain.RUIN
     for y in range(ay - 1, ay + 2):
         terrain[y][ax - 5] = terrain[y][ax + 5] = Terrain.RUIN
+    # A compact lantern silhouette replaces the dotted radial decoration.
     lx, ly = lantern
-    _paint(terrain, Terrain.LANTERN, lantern, 1, 1)
-    for x, y in _ellipse(lx, ly, 7, 3):
-        if terrain[y][x] == Terrain.EARTH and (x + y) % 5 == 0:
-            terrain[y][x] = Terrain.GOLD_FLOWER
+    for x in range(lx - 1, lx + 2):
+        terrain[ly][x] = Terrain.LANTERN
+    terrain[ly + 1][lx] = Terrain.LANTERN
     _paint(terrain, Terrain.EARTH, spawn, 5, 2)
 
     _connect_ground(terrain, spawn)

@@ -26,7 +26,6 @@ TERRAIN_COLORS = {
     Terrain.STONE: (60, 69, 85),
     Terrain.ROCK: (79, 92, 116),
     Terrain.CRYSTAL: (126, 76, 153),
-    Terrain.BRIDGE: (107, 77, 46),
     Terrain.STEPPING_STONE: (94, 104, 115),
     Terrain.RUIN: (114, 104, 88),
     Terrain.LANTERN: (139, 91, 40),
@@ -47,7 +46,6 @@ TERRAIN_FOREGROUNDS = {
     Terrain.STONE: (167, 180, 207),
     Terrain.ROCK: (183, 201, 224),
     Terrain.CRYSTAL: (209, 164, 244),
-    Terrain.BRIDGE: (220, 188, 139),
     Terrain.STEPPING_STONE: (211, 220, 232),
     Terrain.RUIN: (217, 202, 174),
     Terrain.LANTERN: (255, 224, 133),
@@ -102,7 +100,12 @@ class WorldView(SourceView):
                     x, y, self.light_position.x, self.light_position.y,
                     self.light_settings.radius,
                     cell_aspect_ratio=self.light_settings.cell_aspect_ratio)
-                style = self._terrain_palettes[self.world.terrain[y][x]].style_at(intensity)
+                kind = self.world.terrain[y][x]
+                style = self._terrain_palettes[kind].style_at(intensity)
+                # Heavier foliage and petals give keyboard characters more body.
+                if kind in (Terrain.CANOPY, Terrain.TRUNK, Terrain.FLOWER,
+                            Terrain.GOLD_FLOWER, Terrain.CRYSTAL, Terrain.LANTERN):
+                    style += " bold"
                 if y == self.light_position.y and x <= self.light_position.x < x + cells:
                     style = self.palette.cursor_style()
                 spans.append(Span(offset, offset + len(glyph), style))

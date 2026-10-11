@@ -14,6 +14,11 @@ class WorldTests(unittest.TestCase):
                 world = generate_world(str(seed))
                 self.assertEqual((world.width, world.height), (180, 48))
                 self.assertTrue(world.passable(*world.spawn))
+                for left in range(0, world.width, 60):
+                    self.assertGreater(sum(c != " " for line in world.lines
+                                           for c in line[left:left + 60]), 50)
+                self.assertFalse(any(cell == Terrain.WATER for row in world.terrain
+                                     for cell in row[75:105]))
                 # Groves must occupy the added area, not just the old map bounds.
                 self.assertTrue(any(cell == Terrain.CANOPY
                                     for row in world.terrain[24:] for cell in row[60:]))
@@ -33,15 +38,15 @@ class WorldTests(unittest.TestCase):
                 self.assertEqual(seen, ground)
                 self.assertEqual({mark.name for mark in world.landmarks},
                                  {"meadow", "rock garden", "ruined arch", "lantern clearing",
-                                  "bridge", "stepping stones", "pond bank"})
+                                  "stepping stones", "pond bank"})
                 for mark in world.landmarks:
                     self.assertIn(mark.position, seen)
                 kinds = {kind for row in world.terrain for kind in row}
                 self.assertTrue({Terrain.ROCK, Terrain.CRYSTAL, Terrain.RUIN,
-                                 Terrain.LANTERN, Terrain.BRIDGE, Terrain.STEPPING_STONE,
+                                 Terrain.LANTERN, Terrain.STEPPING_STONE,
                                  Terrain.TRUNK, Terrain.TALL_GRASS}.issubset(kinds))
                 for mark in world.landmarks:
-                    if mark.name in ("bridge", "stepping stones"):
+                    if mark.name == "stepping stones":
                         x, y = mark.position
                         self.assertTrue(all(world.passable(cx, y)
                                             for cx in range(x - 3, x + 5)))
@@ -64,6 +69,7 @@ class WorldTests(unittest.TestCase):
                 self.assertTrue(all(line_width(line) == 180 for line in world.lines))
                 self.assertTrue(all(cells == 1 for line in world.lines
                                     for _, _, cells in visible_cells(line, 0, 180)))
+                self.assertTrue(world.text.isascii())
                 self.assertNotIn("\x1b", world.text)
                 self.assertLess(len(world.text), 10000)
 
