@@ -12,7 +12,7 @@ class WorldTests(unittest.TestCase):
         for seed in range(40):
             with self.subTest(seed=seed):
                 world = generate_world("def grow_tree(): return moss", str(seed))
-                self.assertEqual((world.width, world.height), (120, 40))
+                self.assertEqual((world.width, world.height), (140, 32))
                 self.assertTrue(world.passable(*world.spawn))
                 # Groves must occupy the added area, not just the old map bounds.
                 self.assertTrue(any(cell == Terrain.CANOPY
@@ -31,9 +31,9 @@ class WorldTests(unittest.TestCase):
                 ground = {(x,y) for y in range(world.height) for x in range(world.width)
                           if world.passable(x,y)}
                 self.assertEqual(seen, ground)
-                self.assertGreater(len(ground), 120 * 40 * 0.85)
+                self.assertGreater(len(ground), 140 * 32 * 0.85)
                 self.assertFalse(world.passable(-1, 0))
-                self.assertFalse(world.passable(120, 0))
+                self.assertFalse(world.passable(140, 0))
 
     def test_seed_repeatability_and_file_structure_does_not_determine_terrain(self):
         first = generate_world("short", "fern")
@@ -47,8 +47,8 @@ class WorldTests(unittest.TestCase):
                      " ".join(f"word{n}" for n in range(10000))):
             with self.subTest(length=len(text)):
                 world = generate_world(text, "fern")
-                self.assertEqual(len(world.lines), 40)
-                self.assertTrue(all(line_width(line) == 120 for line in world.lines))
+                self.assertEqual(len(world.lines), 32)
+                self.assertTrue(all(line_width(line) == 140 for line in world.lines))
                 self.assertLess(len(world.text), 100000)
                 if not text:
                     self.assertEqual(set(world.text), {" ", "\n"})
@@ -69,7 +69,8 @@ class WorldTests(unittest.TestCase):
         for kind in Terrain:
             self.assertGreater(counts[kind][0], 0)
         self.assertGreater(counts[Terrain.CANOPY][1] / counts[Terrain.CANOPY][0], 0.60)
-        self.assertLess(counts[Terrain.MOSS][1] / counts[Terrain.MOSS][0], 0.15)
+        for kind in (Terrain.MOSS, Terrain.GRASS, Terrain.EARTH):
+            self.assertEqual(counts[kind][1], 0)
         self.assertEqual(counts[Terrain.TRUNK][0], counts[Terrain.TRUNK][1])
         self.assertEqual(counts[Terrain.FLOWER][0], counts[Terrain.FLOWER][1])
         self.assertTrue(all(world.passable(x, y) for y, row in enumerate(world.terrain)

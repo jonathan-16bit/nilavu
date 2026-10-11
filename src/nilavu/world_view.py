@@ -15,9 +15,9 @@ from nilavu.world import Terrain, World
 TERRAIN_COLORS = {
     Terrain.MOSS: (43, 75, 44),
     Terrain.GRASS: (61, 92, 47),
-    Terrain.EARTH: (99, 75, 45),
+    Terrain.EARTH: (75, 78, 60),  # Muted ground stays separate from warm wood.
     Terrain.CANOPY: (28, 58, 37),
-    Terrain.TRUNK: (72, 48, 33),
+    Terrain.TRUNK: (122, 63, 36),
     Terrain.WATER: (34, 82, 113),
     Terrain.FLOWER: (43, 75, 44),
 }
@@ -28,7 +28,7 @@ TERRAIN_FOREGROUNDS = {
     Terrain.GRASS: (164, 193, 113),
     Terrain.EARTH: (177, 147, 99),
     Terrain.CANOPY: (108, 169, 111),
-    Terrain.TRUNK: (201, 157, 103),
+    Terrain.TRUNK: (224, 177, 113),
     Terrain.WATER: (115, 188, 218),
     Terrain.FLOWER: (228, 158, 195),
 }

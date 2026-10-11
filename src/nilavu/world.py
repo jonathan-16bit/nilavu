@@ -10,8 +10,8 @@ import random
 from nilavu.cells import line_width, visible_cells
 from nilavu.navigation import LightPosition
 
-WORLD_WIDTH = 120
-WORLD_HEIGHT = 40
+WORLD_WIDTH = 140
+WORLD_HEIGHT = 32
 
 
 class Terrain(Enum):
@@ -80,9 +80,9 @@ def _reachable(terrain: list[list[Terrain]], spawn: tuple[int, int]) -> set[tupl
 def _text_rows(source_text: str, terrain: list[list[Terrain]],
                rng: random.Random) -> tuple[str, ...]:
     """Arrange source glyphs along terrain shapes, rather than scattering words."""
-    # Density describes scenery, not obstacles. Sparse ground leaves breathing
-    # room, dense leaves reveal canopy outlines, and water has broken ripple rows.
-    density = {Terrain.MOSS: 0.08, Terrain.GRASS: 0.20, Terrain.EARTH: 0.03,
+    # Leave ordinary ground blank so scenery and collision cores stand out.
+    # Dense leaves reveal canopy outlines; water has broken ripple rows.
+    density = {Terrain.MOSS: 0.0, Terrain.GRASS: 0.0, Terrain.EARTH: 0.0,
                Terrain.CANOPY: 0.72, Terrain.TRUNK: 1.0, Terrain.FLOWER: 1.0}
     paint = [[((y % 2 == 0 and (x + y) % 3 != 0) if kind == Terrain.WATER
                else rng.random() < density[kind])

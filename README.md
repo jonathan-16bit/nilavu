@@ -105,20 +105,22 @@ environment automatically. You can also activate it with
 ./dev run src/nilavu/palette.py --game --seed fern --reveal
 ```
 
-`--game` opens a fixed **120-column by 40-row** woodland with moss, grass,
+`--game` opens a fixed **140-column by 32-row** woodland with moss, grass,
 earthy clearings, spaced groves, flowers, and a pond. Most ground and foliage
 are walkable; water and tree cores block movement. Use the same movement keys
 and `q` to quit.
 This is a terrain experiment: fireflies, Space interactions, followers, and the
 pond finale are not implemented yet.
 
-The world has its own terminal-colored border. A terminal at least 122 columns
-by 42 rows displays the whole world; larger terminals center it in neutral space,
+The world has its own terminal-colored border. A terminal at least 142 columns
+by 34 rows displays the whole world; larger terminals center it in neutral space,
 and smaller terminals scroll. Changing font size or resizing changes only the
 viewport, never the generated world or movement bounds.
 
-Source characters form leafy canopy clusters, trunk cores, sparse ground cover,
-pond ripples, and small flower patches. Each role has its own foreground color;
+Source characters form leafy canopy clusters, trunk cores, pond ripples, and
+small flower patches. Ordinary moss, grass, and clearings have blank text cells
+to keep walkable ground uncluttered. Warm wood colors distinguish tree cores
+from muted clearings. Each scenery role has its own foreground color;
 both text and backgrounds respond to the same five lighting levels. Terrain and
 placement come from the seed, independently of source-file formatting or meaning.
 Short input is reused; long input is sampled across the file. Sampled words and
