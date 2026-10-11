@@ -5,12 +5,47 @@ from textual.geometry import Region
 
 from nilavu.game import ForestApp
 from nilavu.navigation import LightPosition
+from nilavu.object_lighting import ANIMATION_FRAMES
 from nilavu.palette import next_seed
 from nilavu.world_view import WorldView
 from nilavu.world import Terrain
 
 
 class GameTests(unittest.IsolatedAsyncioTestCase):
+    async def test_animation_updates_styles_without_changing_world_or_cursor(self):
+        app = ForestApp(seed="fern", reveal=True)
+        async with app.run_test(size=(200, 60)) as pilot:
+            source = app.query_one(WorldView)
+            # Freeze real time so every cached frame is checked deterministically.
+            source._animation_timer.pause()
+            source._animation_frame = 0
+            world, position = app.world, app.light_position
+            frames = []
+            for _ in range(ANIMATION_FRAMES):
+                content = source.render()
+                frames.append(tuple(span.style for span in content.spans))
+                x, y = world.spawn
+                self.assertEqual(content.spans[y * world.width + x].style,
+                                 app.palette.cursor_style())
+                self.assertEqual(content.plain, world.text)
+                source._advance_animation()
+            self.assertGreater(len(set(frames)), 1)
+            for kind in (Terrain.WATER, Terrain.CRYSTAL, Terrain.LANTERN):
+                indexes = [y * world.width + x for y, row in enumerate(world.terrain)
+                           for x, terrain in enumerate(row) if terrain == kind]
+                self.assertGreater(len({tuple(frame[i] for i in indexes)
+                                        for frame in frames}), 1)
+            self.assertEqual(source._animation_frame, 0)
+            self.assertIs(app.world, world)
+            self.assertEqual(app.light_position, position)
+            await pilot.press("t")
+            await pilot.press("r")
+            self.assertEqual(source._animation_frame, 0)
+            self.assertEqual(len(source._glow_frames), ANIMATION_FRAMES)
+            timer = source._animation_timer
+            await pilot.press("q")
+        self.assertIsNone(timer._task)
+
     async def test_world_stays_fixed_when_zooming_out_and_in(self):
         app = ForestApp(seed="pond", reveal=True)
         async with app.run_test(size=(200, 60)) as pilot:

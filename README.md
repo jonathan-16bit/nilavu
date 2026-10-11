@@ -148,11 +148,15 @@ uncluttered. Warm wood colors distinguish tree cores from muted clearings. Each
 scenery role has its own foreground color; both text and backgrounds respond to
 the same five lighting levels. Foliage and stone have directional highlights,
 flower centers have warm accents, and water has brighter blue ripple colors.
-Lanterns cast warm amber halos; crystals cast smaller violet halos. These static
+Lanterns cast warm amber halos; crystals cast smaller violet halos. These
 object lights use the same stepped shading and cell aspect ratio as the cursor,
 and remain visible from a distance. Overlapping glows use the strongest light;
-they are atmospheric effects without obstacle shadows. Color variation is cached
-when a world or theme changes. Symbol appearance depends on your terminal font.
+they are atmospheric effects without obstacle shadows. Lantern light gently
+flickers, crystals pulse slowly at different phases, and sparse water highlights
+shift across the existing ripple characters. One timer advances a six-second
+loop twice per second; glow frames and color variations are cached when a world
+or theme changes. Animation changes only styling, preserving terrain, symbols,
+and the cursor highlight. Symbol appearance depends on your terminal font.
 
 Game mode starts with the forest palette unless `--theme` is supplied. `t`
 changes colors without changing terrain; `r` advances the seed and starts a new

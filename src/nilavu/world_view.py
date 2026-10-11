@@ -5,7 +5,9 @@ from textual.content import Content, Span
 from nilavu.cells import visible_cells
 from nilavu.lighting import LightSettings, brightness_at
 from nilavu.navigation import LightPosition
-from nilavu.object_lighting import glow_field
+from nilavu.object_lighting import (
+    ANIMATION_FRAMES, ANIMATION_INTERVAL, glow_field, water_highlight,
+)
 from nilavu.palette import Palette
 from nilavu.source_view import SourceView
 from nilavu.viewport import Viewport
@@ -61,11 +63,31 @@ class WorldView(SourceView):
         super().__init__(world.text, light, palette, light_settings=light_settings)
         self.world = world
         self._glows = glow_field(world, light_settings.cell_aspect_ratio)
+        self._cache_animation()
         self.reveal = reveal
         self.add_class("game-world")
         self.styles.width = world.width + 2
         self.styles.height = world.height + 2
         self.update_palette(palette)
+
+    def _cache_animation(self) -> None:
+        # Precompute the small loop once per world. The timer only selects a
+        # frame; it never regenerates terrain or recalculates light distances.
+        self._glow_frames = tuple(
+            glow_field(self.world, self.light_settings.cell_aspect_ratio, frame=frame)
+            for frame in range(ANIMATION_FRAMES)
+        )
+        self._animation_frame = 0
+
+    def on_mount(self) -> None:
+        self._animation_timer = self.set_interval(ANIMATION_INTERVAL, self._advance_animation)
+
+    def on_unmount(self) -> None:
+        self._animation_timer.stop()
+
+    def _advance_animation(self) -> None:
+        self._animation_frame = (self._animation_frame + 1) % ANIMATION_FRAMES
+        self.refresh()
 
     def update_palette(self, palette: Palette) -> None:
         self.palette = palette
@@ -78,6 +100,8 @@ class WorldView(SourceView):
             return tuple(max(0, min(255, c + amount)) for c in rgb)
 
         palettes = []
+        self._water_palettes = {}
+        self._dim_accent_palettes = {}
         for y, row in enumerate(self.world.terrain):
             colors = []
             for x, kind in enumerate(row):
@@ -100,8 +124,23 @@ class WorldView(SourceView):
                 glow = self._glows[y][x]
                 fg = mix(fg, glow.color, glow.brightness * 0.35)
                 bg = mix(bg, glow.color, glow.brightness * 0.18)
-                colors.append(Palette(background=palette.background, foreground=fg,
-                                      cell_background=bg, cursor_background=palette.cursor_background))
+                cell_palette = Palette(background=palette.background, foreground=fg,
+                                       cell_background=bg, cursor_background=palette.cursor_background)
+                colors.append(cell_palette)
+                if kind in (Terrain.CRYSTAL, Terrain.LANTERN):
+                    # A small text-color shift also shows the pulse under full
+                    # cursor illumination or in the fully revealed preview.
+                    self._dim_accent_palettes[x, y] = Palette(
+                        background=palette.background, foreground=shift(fg, -12),
+                        cell_background=bg, cursor_background=palette.cursor_background,
+                    )
+                if kind == Terrain.WATER:
+                    self._water_palettes[x, y] = Palette(
+                        background=palette.background,
+                        foreground=mix(fg, (215, 239, 247), 0.18),
+                        cell_background=mix(bg, (98, 167, 196), 0.08),
+                        cursor_background=palette.cursor_background,
+                    )
             palettes.append(tuple(colors))
         self._cell_palettes = tuple(palettes)
         self.refresh()
@@ -109,6 +148,7 @@ class WorldView(SourceView):
     def update_world(self, world: World, light: LightPosition) -> None:
         self.world = world
         self._glows = glow_field(world, self.light_settings.cell_aspect_ratio)
+        self._cache_animation()
         self.update_palette(self.palette)
         self._lines = list(world.lines)
         self._cell_indexes = {}
@@ -130,8 +170,14 @@ class WorldView(SourceView):
                     self.light_settings.radius,
                     cell_aspect_ratio=self.light_settings.cell_aspect_ratio)
                 kind = self.world.terrain[y][x]
-                intensity = max(intensity, self._glows[y][x].brightness)
-                style = self._cell_palettes[y][x].style_at(intensity)
+                glow = self._glow_frames[self._animation_frame][y][x]
+                intensity = max(intensity, glow.brightness)
+                palette = self._cell_palettes[y][x]
+                if kind == Terrain.WATER and water_highlight(x, y, self._animation_frame):
+                    palette = self._water_palettes[x, y]
+                elif kind in (Terrain.CRYSTAL, Terrain.LANTERN) and glow.level < self._glows[y][x].level:
+                    palette = self._dim_accent_palettes[x, y]
+                style = palette.style_at(intensity)
                 # Keep foliage light; reserve heavier text for small accents.
                 if kind in (Terrain.TRUNK, Terrain.CRYSTAL, Terrain.LANTERN):
                     style += " bold"
