@@ -1,6 +1,9 @@
 """Display prepared source text inside the current terminal."""
 
+import os
+
 from rich.text import Text
+from textual import constants
 from textual.app import App, ComposeResult
 from textual.containers import Container
 
@@ -65,8 +68,17 @@ class NilavuApp(App[None], inherit_bindings=False):
         theme: str = DEFAULT_THEME,
         seed: str = DEFAULT_SEED,
     ) -> None:
-        # Prevent Textual from substituting RGB colors for the terminal palette.
-        super().__init__(ansi_color=True)
+        # A shell configured for other Textual apps must not enable diagnostic
+        # files, debug output, or a developer-tool connection in this viewer.
+        constants.LOG_FILE = None
+        constants.DEBUG = False
+        inherited_features = os.environ.pop("TEXTUAL", None)
+        try:
+            # Keep the terminal palette while constructing without dev features.
+            super().__init__(ansi_color=True)
+        finally:
+            if inherited_features is not None:
+                os.environ["TEXTUAL"] = inherited_features
         self._source_text = source_text
         self.light_settings = light_settings
         self.palette_theme = theme

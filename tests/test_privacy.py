@@ -2,6 +2,7 @@
 
 from contextlib import redirect_stderr
 import io
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -11,9 +12,28 @@ from rich.text import Text
 from textual import constants
 
 from nilavu.app import NilavuApp
+from nilavu.game import ForestApp
 
 
 class PrivacyTests(unittest.IsolatedAsyncioTestCase):
+    async def test_inherited_diagnostics_do_not_log_or_enable_devtools_in_either_mode(self):
+        for factory in (lambda: NilavuApp("private source"), lambda: ForestApp(seed="fern")):
+            with tempfile.TemporaryDirectory() as directory:
+                logfile = Path(directory) / "runtime.log"
+                with (
+                    patch.object(constants, "LOG_FILE", str(logfile)),
+                    patch.object(constants, "DEBUG", True),
+                    patch.dict(os.environ, {"TEXTUAL": "debug,devtools"}),
+                ):
+                    app = factory()
+                    self.assertEqual(os.environ["TEXTUAL"], "debug,devtools")
+                    self.assertFalse(app.features)
+                    self.assertIsNone(app.devtools)
+                    async with app.run_test() as pilot:
+                        await pilot.press("d", "q")
+                    self.assertFalse(logfile.exists())
+                    self.assertEqual(app.return_code, 0)
+
     async def test_display_errors_hide_source_and_preserve_original_failure(self):
         marker = "PRIVATE_DOCUMENT_SENTINEL"
 
