@@ -45,6 +45,7 @@ or text file to explore something else:
 | Key | Action |
 | --- | --- |
 | `h`, `j`, `k`, `l` / arrow keys | Move left, down, up, and right. |
+| `w`, `a`, `s`, `d` | Move up, left, down, and right. |
 | `t` | Switch between moonlight and forest, remembering the forest seed. |
 | `r` | Advance to the next forest seed; does nothing in moonlight. |
 | `q` | Quit and restore the terminal. |

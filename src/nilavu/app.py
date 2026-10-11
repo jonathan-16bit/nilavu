@@ -22,10 +22,10 @@ class NilavuApp(App[None], inherit_bindings=False):
     ENABLE_COMMAND_PALETTE = False
     BINDINGS = [
         ("q", "quit", "Quit"),
-        ("h,left", "move_light(-1,0)", "Left"),
-        ("j,down", "move_light(0,1)", "Down"),
-        ("k,up", "move_light(0,-1)", "Up"),
-        ("l,right", "move_light(1,0)", "Right"),
+        ("h,a,left", "move_light(-1,0)", "Left"),
+        ("j,s,down", "move_light(0,1)", "Down"),
+        ("k,w,up", "move_light(0,-1)", "Up"),
+        ("l,d,right", "move_light(1,0)", "Right"),
         ("t", "cycle_theme", "Theme"),
         ("r", "advance_seed", "Next forest seed"),
     ]
