@@ -76,4 +76,3 @@ class FireflyTests(unittest.TestCase):
                 run.nearest_sleeping(world.spawn, ratio)
             with self.assertRaises(ValueError):
                 sleeping_glow_frames(world, run.fireflies[0].position, ratio)
-
