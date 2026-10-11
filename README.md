@@ -142,8 +142,10 @@ never block your path or cover scenery symbols; the cursor and sleeping discover
 take drawing priority. Collection remains permanent even when a companion shares
 the cursor's cell briefly in a crowded spot.
 
-Once all three are awake, the border guides you toward the pond bank with compass
-directions (`N`, `S`, `E`, `W`). At the bank on the pond's west shore, press Space
+Once all three are awake, the border's `G:` compass directions (`N`, `S`, `E`, `W`)
+guide you toward a teal `G` marker on the pond's west bank. The marker uses normal
+terrain lighting. Within six column-width units of it on walkable ground
+(using the configured cell aspect ratio), press Space
 to gather your companions and light up the landscape over two seconds. Visiting
 early shows how many fireflies remain; arrival alone never ends the run. The
 fireflies settle on clear shore cells, and completion depends on your collected

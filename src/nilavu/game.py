@@ -76,7 +76,7 @@ class ForestApp(NilavuApp):
             x, y = self.light_position.x, self.light_position.y
             direction = ("N" if py < y else "S" if py > y else "")
             direction += "W" if px < x else "E" if px > x else ""
-            prompt = f"all awake | pond {direction}"
+            prompt = f"all awake | G: {direction}"
         if at_pond_bank(self.world, (self.light_position.x, self.light_position.y),
                         self.light_settings.cell_aspect_ratio):
             remaining = len(self.firefly_run.fireflies) - self.firefly_run.awake_count

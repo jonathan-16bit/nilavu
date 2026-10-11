@@ -189,6 +189,12 @@ class WorldView(SourceView):
                     )
             palettes.append(tuple(colors))
         self._cell_palettes = tuple(palettes)
+        px, py = self.world.pond_bank
+        self._gather_palette = Palette(
+            background=palette.background, foreground=(154, 235, 221),
+            cell_background=self._cell_palettes[py][px].cell_background,
+            cursor_background=palette.cursor_background,
+        )
         self._firefly_palette = Palette(
             background=palette.background, foreground=(255, 255, 255),
             cell_background=(50, 66, 58), cursor_background=palette.cursor_background,
@@ -239,6 +245,7 @@ class WorldView(SourceView):
         self._follow_light(self.size.width, self.size.height)
         firefly_cells = set()
         companion_cells = set(self.companion_positions)
+        gather_cell = self.world.pond_bank
         cursor_cell = (self.light_position.x, self.light_position.y)
         firefly_light = {}
         for fly, frames in zip(self.fireflies, self._firefly_frames):
@@ -277,7 +284,12 @@ class WorldView(SourceView):
                 if nearby_glow > intensity:
                     intensity = nearby_glow
                     palette = self._firefly_palettes[x, y]
-                if (x, y) in firefly_cells:
+                if (x, y) == gather_cell:
+                    # A normal lit landmark marks the destination without
+                    # revealing it early or changing the generated terrain.
+                    glyph = "G"
+                    palette = self._gather_palette
+                elif (x, y) in firefly_cells:
                     glyph = "i"
                     palette = self._firefly_palette
                     # The body stays readable while its small halo pulses.
@@ -292,6 +304,7 @@ class WorldView(SourceView):
                     style = f"#ffffff on {style.partition(' on ')[2]}"
                 # Keep foliage light; reserve heavier text for small accents.
                 if (kind in (Terrain.TRUNK, Terrain.CRYSTAL, Terrain.LANTERN)
+                        or (x, y) == gather_cell
                         or (x, y) in firefly_cells or ((x, y) in companion_cells and glyph == "i")):
                     style += " bold"
                 if y == self.light_position.y and x <= self.light_position.x < x + cells:

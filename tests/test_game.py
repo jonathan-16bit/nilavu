@@ -19,6 +19,12 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             source = app.query_one(WorldView)
             source._animation_timer.pause()
             world = app.world
+            gx, gy = world.pond_bank
+            initial = source.render()
+            self.assertEqual(initial.plain.splitlines()[gy][gx], "G")
+            marker = Style.parse(initial.spans[gy * world.width + gx].style)
+            self.assertEqual(marker.color.triplet, app.palette.background)
+            self.assertEqual(world.lines[gy][gx], " ")
 
             def visit(position):
                 app.light_position = LightPosition(world.width - 1, world.height - 1, *position)
@@ -34,11 +40,15 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
                 visit(fly.position)
                 await pilot.press("space")
             visit(world.spawn)
-            self.assertIn("pond", str(source.border_title))
+            self.assertIn("G:", str(source.border_title))
             await pilot.press("space")
             self.assertFalse(app.firefly_run.completed)
-            visit(world.pond_bank)
+            visit((gx - 5, gy))
             self.assertIn("Space: gather", str(source.border_title))
+            lit = source.render()
+            marker = Style.parse(lit.spans[gy * world.width + gx].style)
+            self.assertNotEqual(marker.color, marker.bgcolor)
+            self.assertTrue(marker.bold)
             self.assertFalse(app.firefly_run.completed)
             await pilot.press("space")
             timer = source._finale_timer
@@ -155,6 +165,8 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             source._animation_frame = 0
             world, position = app.world, app.light_position
             expected_rows = [list(row) for row in world.lines]
+            x, y = world.pond_bank
+            expected_rows[y][x] = "G"
             for fly in app.firefly_run.fireflies:
                 x, y = fly.position
                 expected_rows[y][x] = "i"

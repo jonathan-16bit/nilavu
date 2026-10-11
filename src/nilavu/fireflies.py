@@ -12,6 +12,7 @@ from nilavu.world import Terrain, World
 
 FIREFLY_COUNT = 3
 INTERACTION_RADIUS = 3.0
+GATHER_RADIUS = 6.0
 GLOW_RADIUS = 5.0
 
 
@@ -62,13 +63,13 @@ class FireflyRun:
 
 
 def at_pond_bank(world: World, position: tuple[int, int], cell_aspect_ratio: float) -> bool:
-    """Allow a close shore interaction, using the same geometry as waking."""
+    """Allow gathering on the wider shore around the visible bank marker."""
     if not math.isfinite(cell_aspect_ratio) or cell_aspect_ratio <= 0:
         raise ValueError("Cell aspect ratio must be finite and positive.")
     x, y = position
     px, py = world.pond_bank
     return (world.passable(x, y)
-            and math.hypot(x - px, (y - py) * cell_aspect_ratio) <= INTERACTION_RADIUS)
+            and math.hypot(x - px, (y - py) * cell_aspect_ratio) <= GATHER_RADIUS)
 
 
 def new_run(world: World, seed: str, count: int = FIREFLY_COUNT) -> FireflyRun:

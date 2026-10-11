@@ -93,11 +93,11 @@ class FireflyTests(unittest.TestCase):
             self.assertEqual(finished.awake_count, count)
             self.assertIs(finished.finish_nearby(world, world.pond_bank, 2), finished)
         x, y = world.pond_bank
-        self.assertTrue(at_pond_bank(world, (x - 3, y), 2))
-        self.assertFalse(at_pond_bank(world, (x - 4, y), 2))
-        self.assertTrue(at_pond_bank(world, (x, y - 1), 2))
-        self.assertFalse(at_pond_bank(world, (x, y - 2), 2))
-        self.assertTrue(at_pond_bank(world, (x, y - 2), 1))
+        self.assertTrue(at_pond_bank(world, (x - 6, y), 2))
+        self.assertFalse(at_pond_bank(world, (x - 7, y), 2))
+        self.assertTrue(at_pond_bank(world, (x, y - 3), 2))
+        self.assertFalse(at_pond_bank(world, (x, y - 4), 2))
+        self.assertTrue(at_pond_bank(world, (x, y - 4), 1))
         for ratio in (0, -1, float("nan"), float("inf")):
             with self.assertRaises(ValueError):
                 at_pond_bank(world, world.pond_bank, ratio)
