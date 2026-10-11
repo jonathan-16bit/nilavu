@@ -19,7 +19,17 @@ TERRAIN_COLORS = {
     Terrain.CANOPY: (28, 58, 37),
     Terrain.TRUNK: (122, 63, 36),
     Terrain.WATER: (34, 82, 113),
-    Terrain.FLOWER: (43, 75, 44),
+    Terrain.FLOWER: (91, 62, 81),
+    Terrain.GOLD_FLOWER: (105, 96, 49),
+    Terrain.MEADOW: (86, 100, 55),
+    Terrain.TALL_GRASS: (58, 98, 59),
+    Terrain.STONE: (60, 69, 85),
+    Terrain.ROCK: (79, 92, 116),
+    Terrain.CRYSTAL: (126, 76, 153),
+    Terrain.BRIDGE: (107, 77, 46),
+    Terrain.STEPPING_STONE: (94, 104, 115),
+    Terrain.RUIN: (114, 104, 88),
+    Terrain.LANTERN: (139, 91, 40),
 }
 
 
@@ -30,7 +40,17 @@ TERRAIN_FOREGROUNDS = {
     Terrain.CANOPY: (108, 169, 111),
     Terrain.TRUNK: (224, 177, 113),
     Terrain.WATER: (115, 188, 218),
-    Terrain.FLOWER: (228, 158, 195),
+    Terrain.FLOWER: (241, 154, 202),
+    Terrain.GOLD_FLOWER: (242, 215, 113),
+    Terrain.MEADOW: (193, 213, 131),
+    Terrain.TALL_GRASS: (146, 205, 124),
+    Terrain.STONE: (167, 180, 207),
+    Terrain.ROCK: (183, 201, 224),
+    Terrain.CRYSTAL: (209, 164, 244),
+    Terrain.BRIDGE: (220, 188, 139),
+    Terrain.STEPPING_STONE: (211, 220, 232),
+    Terrain.RUIN: (217, 202, 174),
+    Terrain.LANTERN: (255, 224, 133),
 }
 
 

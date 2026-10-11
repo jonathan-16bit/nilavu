@@ -1,4 +1,4 @@
-"""An experimental forest mode built on the existing terminal viewer."""
+"""An experimental landscape mode built on the existing terminal viewer."""
 
 from rich.text import Text
 from textual.app import ComposeResult
@@ -11,8 +11,11 @@ from nilavu.world import generate_world
 from nilavu.world_view import WorldView
 
 
+DEFAULT_GAME_LIGHT_SETTINGS = LightSettings(16.0, DEFAULT_LIGHT_SETTINGS.cell_aspect_ratio)
+
+
 class ForestApp(NilavuApp):
-    """Explore one fixed woodland; resizing changes only its viewport."""
+    """Explore one fixed landscape; resizing changes only its viewport."""
 
     CSS = """
     #frame.game-frame {
@@ -31,7 +34,7 @@ class ForestApp(NilavuApp):
     """
 
     def __init__(self, source_text: str, *, seed: str = DEFAULT_SEED,
-                 theme: str = "forest", light_settings: LightSettings = DEFAULT_LIGHT_SETTINGS,
+                 theme: str = "forest", light_settings: LightSettings = DEFAULT_GAME_LIGHT_SETTINGS,
                  reveal: bool = False) -> None:
         self._input_text = source_text
         self.world = generate_world(source_text, seed)

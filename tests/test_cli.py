@@ -170,13 +170,14 @@ class CliTests(unittest.TestCase):
         self.assertEqual(main([str(self.path), "--game", "--reveal", "--seed", "pond"]), 0)
         self.game_factory.assert_called_once_with(
             "    [bold]\n\\x1b[31m", theme="forest", reveal=True,
-            light_settings=LightSettings(12.0, 2.0), seed="pond")
+            light_settings=LightSettings(16.0, 2.0), seed="pond")
         self.app_factory.assert_not_called()
         self.game_factory.return_value.run.assert_called_once_with()
 
     def test_game_accepts_explicit_moonlight_and_reveal_requires_game(self):
-        self.assertEqual(main([str(self.path), "--game", "--theme", "moonlight"]), 0)
+        self.assertEqual(main([str(self.path), "--game", "--theme", "moonlight", "--radius", "20"]), 0)
         self.assertEqual(self.game_factory.call_args.kwargs["theme"], "moonlight")
+        self.assertEqual(self.game_factory.call_args.kwargs["light_settings"], LightSettings(20, 2))
         with patch("nilavu.cli.load_document") as loader:
             with self.assertRaises(SystemExit) as exit_status:
                 main([str(self.path), "--reveal"])

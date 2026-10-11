@@ -12,7 +12,7 @@ class WorldTests(unittest.TestCase):
         for seed in range(40):
             with self.subTest(seed=seed):
                 world = generate_world("def grow_tree(): return moss", str(seed))
-                self.assertEqual((world.width, world.height), (140, 32))
+                self.assertEqual((world.width, world.height), (180, 48))
                 self.assertTrue(world.passable(*world.spawn))
                 # Groves must occupy the added area, not just the old map bounds.
                 self.assertTrue(any(cell == Terrain.CANOPY
@@ -31,9 +31,23 @@ class WorldTests(unittest.TestCase):
                 ground = {(x,y) for y in range(world.height) for x in range(world.width)
                           if world.passable(x,y)}
                 self.assertEqual(seen, ground)
-                self.assertGreater(len(ground), 140 * 32 * 0.85)
+                self.assertEqual({mark.name for mark in world.landmarks},
+                                 {"meadow", "rock garden", "ruined arch", "lantern clearing",
+                                  "bridge", "stepping stones", "pond bank"})
+                for mark in world.landmarks:
+                    self.assertIn(mark.position, seen)
+                kinds = {kind for row in world.terrain for kind in row}
+                self.assertTrue({Terrain.ROCK, Terrain.CRYSTAL, Terrain.RUIN,
+                                 Terrain.LANTERN, Terrain.BRIDGE, Terrain.STEPPING_STONE,
+                                 Terrain.TRUNK, Terrain.TALL_GRASS}.issubset(kinds))
+                for mark in world.landmarks:
+                    if mark.name in ("bridge", "stepping stones"):
+                        x, y = mark.position
+                        self.assertTrue(all(world.passable(cx, y)
+                                            for cx in range(x - 3, x + 5)))
+                self.assertGreater(len(ground), 180 * 48 * 0.85)
                 self.assertFalse(world.passable(-1, 0))
-                self.assertFalse(world.passable(140, 0))
+                self.assertFalse(world.passable(180, 0))
 
     def test_seed_repeatability_and_file_structure_does_not_determine_terrain(self):
         first = generate_world("short", "fern")
@@ -47,8 +61,8 @@ class WorldTests(unittest.TestCase):
                      " ".join(f"word{n}" for n in range(10000))):
             with self.subTest(length=len(text)):
                 world = generate_world(text, "fern")
-                self.assertEqual(len(world.lines), 32)
-                self.assertTrue(all(line_width(line) == 140 for line in world.lines))
+                self.assertEqual(len(world.lines), 48)
+                self.assertTrue(all(line_width(line) == 180 for line in world.lines))
                 self.assertLess(len(world.text), 100000)
                 if not text:
                     self.assertEqual(set(world.text), {" ", "\n"})
@@ -69,7 +83,7 @@ class WorldTests(unittest.TestCase):
         for kind in Terrain:
             self.assertGreater(counts[kind][0], 0)
         self.assertGreater(counts[Terrain.CANOPY][1] / counts[Terrain.CANOPY][0], 0.60)
-        for kind in (Terrain.MOSS, Terrain.GRASS, Terrain.EARTH):
+        for kind in (Terrain.MOSS, Terrain.GRASS, Terrain.EARTH, Terrain.MEADOW, Terrain.STONE):
             self.assertEqual(counts[kind][1], 0)
         self.assertEqual(counts[Terrain.TRUNK][0], counts[Terrain.TRUNK][1])
         self.assertEqual(counts[Terrain.FLOWER][0], counts[Terrain.FLOWER][1])

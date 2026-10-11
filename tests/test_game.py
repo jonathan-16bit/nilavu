@@ -13,21 +13,21 @@ from nilavu.world import Terrain
 class GameTests(unittest.IsolatedAsyncioTestCase):
     async def test_world_stays_fixed_when_zooming_out_and_in(self):
         app = ForestApp("fern", seed="pond", reveal=True)
-        async with app.run_test(size=(160, 50)) as pilot:
+        async with app.run_test(size=(200, 60)) as pilot:
             world = app.world
             source = app.query_one(WorldView)
-            self.assertEqual(source.size.width, 140)
-            self.assertEqual(source.size.height, 32)
-            self.assertEqual(source.region, Region(9, 8, 142, 34))
-            self.assertEqual(len(source.render_line(0).text), 140)
+            self.assertEqual(source.size.width, 180)
+            self.assertEqual(source.size.height, 48)
+            self.assertEqual(source.region, Region(9, 5, 182, 50))
+            self.assertEqual(len(source.render_line(0).text), 180)
             self.assertTrue(app.screen.styles.background.ansi == -1)
             await pilot.resize_terminal(30, 12)
             self.assertIs(app.world, world)
             self.assertEqual((source.size.width, source.size.height), (28, 10))
             self.assertGreater(source.viewport.y, 0)
-            await pilot.resize_terminal(170, 60)
+            await pilot.resize_terminal(210, 70)
             self.assertIs(app.world, world)
-            self.assertEqual((source.size.width, source.size.height), (140, 32))
+            self.assertEqual((source.size.width, source.size.height), (180, 48))
             self.assertEqual((source.viewport.x, source.viewport.y), (0, 0))
             await pilot.resize_terminal(1, 1)
             await pilot.press("q")
@@ -64,7 +64,7 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_reveal_changes_illumination_without_changing_terrain(self):
         app = ForestApp("fern", seed="moss")
-        async with app.run_test(size=(160, 50)) as pilot:
+        async with app.run_test(size=(200, 60)) as pilot:
             source = app.query_one(WorldView)
             x, y = app.world.pond
             before = list(source.render_line(y))[x].style.bgcolor.triplet
@@ -84,7 +84,7 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_terrain_has_distinct_foregrounds_and_cursor_priority(self):
         app = ForestApp("Q", seed="fern", reveal=True)
-        async with app.run_test(size=(160, 50)) as pilot:
+        async with app.run_test(size=(200, 60)) as pilot:
             source = app.query_one(WorldView)
             colors = {}
             for y in range(app.world.height):

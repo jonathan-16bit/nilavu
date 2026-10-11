@@ -8,7 +8,7 @@ from typing import TextIO
 
 from nilavu.app import NilavuApp
 from nilavu.document import DocumentError, load_document, normalize_text
-from nilavu.game import ForestApp
+from nilavu.game import DEFAULT_GAME_LIGHT_SETTINGS, ForestApp
 from nilavu.lighting import DEFAULT_LIGHT_SETTINGS, LightSettings
 from nilavu.palette import DEFAULT_SEED, DEFAULT_THEME, THEMES
 
@@ -53,8 +53,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     # setting this attribute is harmless on older versions without colored help.
     parser.color = False
     parser.add_argument("path", help="path to a UTF-8 source or text file")
-    parser.add_argument("--game", action="store_true", help="explore an experimental 140x32 forest")
-    parser.add_argument("--reveal", action="store_true", help="show the whole forest (requires --game)")
+    parser.add_argument("--game", action="store_true", help="explore an experimental 180x48 landscape")
+    parser.add_argument("--reveal", action="store_true", help="show the whole landscape (requires --game)")
     parser.add_argument(
         "--theme",
         choices=THEMES,
@@ -69,9 +69,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--radius",
         type=_positive_finite,
-        default=DEFAULT_LIGHT_SETTINGS.radius,
+        default=None,
         metavar="NUMBER",
-        help="light radius in terminal columns (default: %(default)s)",
+        help="light radius in terminal columns (default: 12 viewer, 16 game)",
     )
     parser.add_argument(
         "--cell-aspect-ratio",
@@ -86,7 +86,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     # Keep one immutable settings object throughout the UI so illumination and
     # scrolling cannot accidentally use different geometry.
     try:
-        light_settings = LightSettings(arguments.radius, arguments.cell_aspect_ratio)
+        default_light = DEFAULT_GAME_LIGHT_SETTINGS if arguments.game else DEFAULT_LIGHT_SETTINGS
+        radius = arguments.radius if arguments.radius is not None else default_light.radius
+        light_settings = LightSettings(radius, arguments.cell_aspect_ratio)
     except ValueError as error:
         parser.error(str(error))
 

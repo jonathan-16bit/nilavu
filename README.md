@@ -57,7 +57,7 @@ Configure the viewer when launching:
 | --- | --- | --- |
 | `--theme` | `moonlight` | Starting palette family: `moonlight` or `forest`. |
 | `--seed` | `moss` | Starting forest seed, remembered even when launching in moonlight. |
-| `--radius` | `12` | Reach in terminal column-width units. Larger values expand the light. |
+| `--radius` | `12` viewer, `16` game | Reach in terminal column-width units. Larger values expand the light. |
 | `--cell-aspect-ratio` | `2` | Cell height divided by width. Larger values compress the vertical reach. |
 
 Choose a coordinated text, cell-background, darkness, and cursor palette:
@@ -105,20 +105,28 @@ environment automatically. You can also activate it with
 ./dev run src/nilavu/palette.py --game --seed fern --reveal
 ```
 
-`--game` opens a fixed **140-column by 32-row** woodland with moss, grass,
-earthy clearings, spaced groves, flowers, and a pond. Most ground and foliage
-are walkable; water and tree cores block movement. Use the same movement keys
-and `q` to quit.
-This is a terrain experiment: fireflies, Space interactions, followers, and the
-pond finale are not implemented yet.
+`--game` opens a fixed **180-column by 48-row** landscape. Colorful meadows
+have flowers and tall-grass tufts; woodland pockets have denser groves; rock
+gardens have slate-blue stones and violet crystals. A wandering stream has a
+wooden bridge and stepping stones. A broken stone arch, an amber lantern
+clearing, and a blue pond provide distinct landmarks. The lantern and crystals
+are decorative scenery, with no separate light sources or interactions yet.
 
-The world has its own terminal-colored border. A terminal at least 142 columns
-by 34 rows displays the whole world; larger terminals center it in neutral space,
+Water, trunks, rock clusters, crystals, and ruin walls block movement. Ground,
+foliage, flowers, tall grass, bridges, and stepping stones are walkable. Every
+walkable cell and landmark position is reachable from the initial clearing.
+Use the same movement keys and `q` to quit. Fireflies, Space interactions,
+followers, and the pond finale are not implemented yet.
+
+The world has its own terminal-colored border. A terminal at least 182 columns
+by 50 rows displays the whole world; larger terminals center it in neutral space,
 and smaller terminals scroll. Changing font size or resizing changes only the
-viewport, never the generated world or movement bounds.
+viewport, never the generated world or movement bounds. Game mode defaults to a
+light radius of 16 columns; `--radius` overrides it. The ordinary viewer retains
+its radius of 12.
 
-Source characters form leafy canopy clusters, trunk cores, pond ripples, and
-small flower patches. Ordinary moss, grass, and clearings have blank text cells
+Source characters form canopy clusters, trunk cores, pond ripples, flowers,
+and landmark details. Ordinary moss, grass, and clearings have blank text cells
 to keep walkable ground uncluttered. Warm wood colors distinguish tree cores
 from muted clearings. Each scenery role has its own foreground color;
 both text and backgrounds respond to the same five lighting levels. Terrain and
