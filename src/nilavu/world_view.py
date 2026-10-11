@@ -3,8 +3,10 @@
 import math
 
 from textual.content import Content, Span
+from textual.message import Message
 
 from nilavu.cells import visible_cells
+from nilavu.companions import companion_glow
 from nilavu.fireflies import Firefly, GLOW_RADIUS, sleeping_glow_frames
 from nilavu.lighting import LightSettings, brightness_at
 from nilavu.navigation import LightPosition
@@ -61,6 +63,9 @@ TERRAIN_FOREGROUNDS = {
 class WorldView(SourceView):
     """A bounded world viewport; its widget border separates it from extra space."""
 
+    class AnimationTick(Message):
+        """Let the game gather companions using the existing scenery clock."""
+
     def __init__(self, world: World, light: LightPosition, palette: Palette,
                  *, light_settings: LightSettings, reveal: bool = False,
                  fireflies: tuple[Firefly, ...] = ()) -> None:
@@ -69,6 +74,8 @@ class WorldView(SourceView):
         self._glows = glow_field(world, light_settings.cell_aspect_ratio)
         self._cache_animation()
         self.fireflies = fireflies
+        self.companion_positions = ()
+        self._companion_light = {}
         self._cache_fireflies()
         self.reveal = reveal
         self.add_class("game-world")
@@ -87,6 +94,13 @@ class WorldView(SourceView):
         self._cache_fireflies()
         self.update_palette(self.palette)
 
+    def update_companions(self, positions: tuple[tuple[int, int], ...]) -> None:
+        if positions != self.companion_positions:
+            self.companion_positions = positions
+            self._companion_light = companion_glow(
+                self.world, positions, self.light_settings.cell_aspect_ratio)
+            self.refresh()
+
     def _cache_animation(self) -> None:
         # Precompute the small loop once per world. The timer only selects a
         # frame; it never regenerates terrain or recalculates light distances.
@@ -104,6 +118,7 @@ class WorldView(SourceView):
 
     def _advance_animation(self) -> None:
         self._animation_frame = (self._animation_frame + 1) % ANIMATION_FRAMES
+        self.post_message(self.AnimationTick())
         self.refresh()
 
     def update_palette(self, palette: Palette) -> None:
@@ -175,11 +190,27 @@ class WorldView(SourceView):
                 cell_background=mix(cell.cell_background, (117, 139, 145), 0.20),
                 cursor_background=palette.cursor_background,
             )
+        self._companion_palette = Palette(
+            background=palette.background, foreground=(255, 246, 194),
+            cell_background=(63, 66, 46), cursor_background=palette.cursor_background,
+        )
+        roles = {cell for row in self._cell_palettes for cell in row}
+        roles.update(self._water_palettes.values())
+        roles.update(self._dim_accent_palettes.values())
+        self._companion_palettes = {
+            cell: Palette(background=palette.background,
+                          foreground=mix(cell.foreground, (255, 246, 194), 0.20),
+                          cell_background=mix(cell.cell_background, (130, 120, 68), 0.20),
+                          cursor_background=palette.cursor_background)
+            for cell in roles
+        }
         self.refresh()
 
     def update_world(self, world: World, light: LightPosition) -> None:
         self.world = world
         self.fireflies = ()
+        self.companion_positions = ()
+        self._companion_light = {}
         self._cache_fireflies()
         self._glows = glow_field(world, self.light_settings.cell_aspect_ratio)
         self._cache_animation()
@@ -194,6 +225,8 @@ class WorldView(SourceView):
         # Clamp the viewport now too, so an old scroll origin cannot overrun it.
         self._follow_light(self.size.width, self.size.height)
         firefly_cells = set()
+        companion_cells = set(self.companion_positions)
+        cursor_cell = (self.light_position.x, self.light_position.y)
         firefly_light = {}
         for fly, frames in zip(self.fireflies, self._firefly_frames):
             distance = math.hypot(fly.position[0] - self.light_position.x,
@@ -222,6 +255,10 @@ class WorldView(SourceView):
                     palette = self._water_palettes[x, y]
                 elif kind in (Terrain.CRYSTAL, Terrain.LANTERN) and glow.level < self._glows[y][x].level:
                     palette = self._dim_accent_palettes[x, y]
+                companion_light = self._companion_light.get((x, y), 0)
+                if companion_light:
+                    intensity = max(intensity, companion_light)
+                    palette = self._companion_palettes[palette]
                 nearby_glow = firefly_light.get((x, y), 0)
                 if nearby_glow > intensity:
                     intensity = nearby_glow
@@ -231,9 +268,14 @@ class WorldView(SourceView):
                     palette = self._firefly_palette
                     # The body stays readable while its small halo pulses.
                     intensity = 1.0
+                elif (x, y) in companion_cells and (x, y) != cursor_cell and glyph == " ":
+                    glyph = "i"
+                    palette = self._companion_palette
+                    intensity = 1.0
                 style = palette.style_at(intensity)
                 # Keep foliage light; reserve heavier text for small accents.
-                if kind in (Terrain.TRUNK, Terrain.CRYSTAL, Terrain.LANTERN) or (x, y) in firefly_cells:
+                if (kind in (Terrain.TRUNK, Terrain.CRYSTAL, Terrain.LANTERN)
+                        or (x, y) in firefly_cells or ((x, y) in companion_cells and glyph == "i")):
                     style += " bold"
                 if y == self.light_position.y and x <= self.light_position.x < x + cells:
                     style = self.palette.cursor_style()

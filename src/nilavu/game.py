@@ -5,6 +5,7 @@ from textual.app import ComposeResult
 from textual.containers import Container
 
 from nilavu.app import NilavuApp
+from nilavu.companions import Companions
 from nilavu.fireflies import new_run
 from nilavu.lighting import DEFAULT_LIGHT_SETTINGS, LightSettings
 from nilavu.palette import DEFAULT_SEED, next_seed, palette_for
@@ -45,6 +46,7 @@ class ForestApp(NilavuApp):
                  reveal: bool = False) -> None:
         self.world = generate_world(seed)
         self.firefly_run = new_run(self.world, seed)
+        self.companions = Companions((self.world.spawn,))
         self.reveal = reveal
         super().__init__(self.world.text, seed=seed, theme=theme, light_settings=light_settings)
         self.light_position = self.world.starting_light()
@@ -80,16 +82,33 @@ class ForestApp(NilavuApp):
 
     def action_move_light(self, dx: int, dy: int) -> None:
         position = self.light_position.move(dx, dy)
-        if self.world.passable(position.x, position.y):
+        if position != self.light_position and self.world.passable(position.x, position.y):
             super().action_move_light(dx, dy)
-            self._update_status()
+            self.companions = self.companions.follow(
+                self.world, (position.x, position.y), self.light_settings.cell_aspect_ratio)
+            self.query_one(WorldView).update_companions(self.companions.positions)
+        self._update_status()
+
+    def on_world_view_animation_tick(self, event: WorldView.AnimationTick) -> None:
+        self.companions = self.companions.idle(self.world, self.light_settings.cell_aspect_ratio)
+        self.query_one(WorldView).update_companions(self.companions.positions)
 
     def action_wake_firefly(self) -> None:
         run = self.firefly_run.wake_nearby((self.light_position.x, self.light_position.y),
                                   self.light_settings.cell_aspect_ratio)
         if run is not self.firefly_run:
+            awakened = next(new.position for old, new in zip(self.firefly_run.fireflies, run.fireflies)
+                            if new.awake and not old.awake)
             self.firefly_run = run
+            # Anchor the new companion to this interaction location so it cannot
+            # gather around an older cursor position retained in the trail.
+            if self.companions.trail[0] != (self.light_position.x, self.light_position.y):
+                self.companions = self.companions.follow(
+                    self.world, (self.light_position.x, self.light_position.y),
+                    self.light_settings.cell_aspect_ratio)
+            self.companions = self.companions.add(awakened)
             self.query_one(WorldView).update_fireflies(run.fireflies)
+            self.query_one(WorldView).update_companions(self.companions.positions)
         self._update_status()
 
     def action_advance_seed(self) -> None:
@@ -98,6 +117,7 @@ class ForestApp(NilavuApp):
         self.seed = next_seed(self.seed)
         self.world = generate_world(self.seed)
         self.firefly_run = new_run(self.world, self.seed)
+        self.companions = Companions((self.world.spawn,))
         self.light_position = self.world.starting_light()
         self.palette = palette_for(self.palette_theme, self.seed)
         self.query_one(WorldView).update_world(self.world, self.light_position)

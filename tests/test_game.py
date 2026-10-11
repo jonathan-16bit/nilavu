@@ -12,6 +12,43 @@ from nilavu.world import Terrain
 
 
 class GameTests(unittest.IsolatedAsyncioTestCase):
+    async def test_companions_follow_gather_and_reset_without_losing_progress(self):
+        app = ForestApp(seed="fern")
+        async with app.run_test(size=(200, 60)) as pilot:
+            source = app.query_one(WorldView)
+            source._animation_timer.pause()
+            world = app.world
+            fly = app.firefly_run.fireflies[0]
+            app.light_position = LightPosition(world.width - 1, world.height - 1, *fly.position)
+            source.update_light(app.light_position)
+            await pilot.press("space", "space")
+            self.assertEqual(app.firefly_run.awake_count, 1)
+            self.assertEqual(len(app.companions.positions), 1)
+            start = app.light_position
+            await pilot.press("d", "d", "d", "s", "s")
+            self.assertNotEqual(app.light_position, start)
+            self.assertEqual(source.companion_positions, app.companions.positions)
+            self.assertEqual(app.firefly_run.awake_count, 1)
+            for _ in range(2):
+                source._advance_animation()
+                await pilot.pause()
+            self.assertEqual(app.companions.idle_ticks, 2)
+            self.assertNotIn((app.light_position.x, app.light_position.y), app.companions.positions)
+            x, y = app.companions.positions[0]
+            content = source.render()
+            self.assertEqual(content.plain.splitlines()[y][x], "i")
+            self.assertEqual(app.world.lines[y][x], " ")
+            self.assertIs(app.world, world)
+            group = app.companions
+            await pilot.press("t")
+            await pilot.resize_terminal(35, 14)
+            self.assertEqual(app.companions, group)
+            await pilot.press("r")
+            self.assertEqual(app.companions.positions, ())
+            self.assertEqual(source.companion_positions, ())
+            self.assertEqual(source._companion_light, {})
+            self.assertEqual(app.firefly_run.awake_count, 0)
+
     async def test_animation_updates_styles_without_changing_world_or_cursor(self):
         app = ForestApp(seed="fern", reveal=True)
         async with app.run_test(size=(200, 60)) as pilot:

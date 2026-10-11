@@ -132,10 +132,14 @@ The white body stays bright while the halo pulses, distinguishing it from amber
 lanterns and flower heads.
 The top border shows the awake count and `Space: wake` when within three
 column-width units (using the configured cell aspect ratio). Space wakes the
-nearest sleeper once; repeated presses cannot count it twice. An awakened marker
-disappears, while its collected state remains for the run. Followers and the pond
-finale are not implemented yet, so waking all three currently shows `all awake`
-and lets you keep exploring.
+nearest sleeper once; repeated presses cannot count it twice. Each awakened
+firefly joins you as a pale warm `i` with a small steady glow. Companions follow
+recent movement in wake order and gather on nearby blank ground after about a
+second of stillness. They catch up automatically during fast movement and never
+block your path or cover scenery symbols; the cursor and sleeping discoveries
+take drawing priority. Collection remains permanent even when a companion shares
+the cursor's cell briefly in a crowded spot. The pond finale is not implemented
+yet, so waking all three currently shows `all awake` and lets you keep exploring.
 
 The world has its own terminal-colored border. A terminal at least 182 columns
 by 50 rows displays the whole world; larger terminals center it in neutral space,
@@ -172,7 +176,7 @@ and the cursor highlight. Symbol appearance depends on your terminal font.
 Game mode starts with the forest palette unless `--theme` is supplied. `t`
 changes colors without changing terrain; `r` advances the seed and starts a new
 world at its initial clearing and resets firefly progress, in either theme.
-Changing themes or resizing preserves progress. The same seed reproduces firefly
+Changing themes or resizing preserves progress and companions. The same seed reproduces firefly
 positions as well as the landscape. `--reveal` lights the entire world
 for inspecting its composition, while leaving collisions active. It requires
 `--game` and is an experiment preview, not a completed game.
