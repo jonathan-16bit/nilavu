@@ -16,7 +16,43 @@ is recommended. Nilavu uses your terminal's font and runs in the current window.
 
 Clone the repository, then install into a virtual environment.
 
-### macOS / Linux
+### Quick start (auto clone and install)
+
+Run this from the directory where you want `./nilavu` (or `.\nilavu`) created.
+This runs the same steps as the manual install below
+(`git clone`, `venv`, `pip install .`, first game run).
+
+macOS / Linux — requires `curl`, uses `bash`, `zsh`, or `ksh`
+(process substitution is unsupported in Fish and Windows CMD):
+
+```sh
+sh <(curl -L https://raw.githubusercontent.com/jonathan-16bit/nilavu/main/install.sh)
+```
+
+> Caution: if you are using Fish shell, DO NOT use the command above.
+> Clone and run `install.sh` instead:
+>
+> ```sh
+> git clone https://github.com/jonathan-16bit/nilavu.git
+> cd nilavu
+> sh install.sh
+> ```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/jonathan-16bit/nilavu/main/install.ps1 | iex
+```
+
+Manual fallback instead:
+
+```powershell
+git clone https://github.com/jonathan-16bit/nilavu.git
+cd nilavu
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+### macOS / Linux (manual)
 
 ```sh
 git clone https://github.com/jonathan-16bit/nilavu.git
