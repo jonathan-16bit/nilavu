@@ -10,7 +10,7 @@ import random
 from nilavu.cells import line_width, visible_cells
 from nilavu.navigation import LightPosition
 
-WORLD_WIDTH = 100
+WORLD_WIDTH = 120
 WORLD_HEIGHT = 40
 
 
@@ -21,6 +21,7 @@ class Terrain(Enum):
     CANOPY = "canopy"
     TRUNK = "trunk"
     WATER = "water"
+    FLOWER = "flower"
 
 
 BLOCKED = frozenset((Terrain.TRUNK, Terrain.WATER))
@@ -76,35 +77,49 @@ def _reachable(terrain: list[list[Terrain]], spawn: tuple[int, int]) -> set[tupl
     return reached
 
 
-def _text_rows(source_text: str, rng: random.Random) -> tuple[str, ...]:
-    """Sample across the input, reusing short material without filling every cell."""
+def _text_rows(source_text: str, terrain: list[list[Terrain]],
+               rng: random.Random) -> tuple[str, ...]:
+    """Arrange source glyphs along terrain shapes, rather than scattering words."""
+    # Density describes scenery, not obstacles. Sparse ground leaves breathing
+    # room, dense leaves reveal canopy outlines, and water has broken ripple rows.
+    density = {Terrain.MOSS: 0.08, Terrain.GRASS: 0.20, Terrain.EARTH: 0.03,
+               Terrain.CANOPY: 0.72, Terrain.TRUNK: 1.0, Terrain.FLOWER: 1.0}
+    paint = [[((y % 2 == 0 and (x + y) % 3 != 0) if kind == Terrain.WATER
+               else rng.random() < density[kind])
+              for x, kind in enumerate(row)] for y, row in enumerate(terrain)]
     words = source_text.split()
     if not words:
         return tuple(" " * WORLD_WIDTH for _ in range(WORLD_HEIGHT))
     words = rng.sample(words, min(len(words), 96))
-    # Limit both characters and terminal columns. A pathological combining-mark
-    # sequence must not become an enormous glyph repeated throughout the world.
-    words = ["".join(glyph for _, glyph, _ in visible_cells(
-        word[:64], 0, min(14, line_width(word[:64])))) for word in words]
+    # Bound sampled words and combining sequences before repeating glyphs.
+    # The loader has already made terminal controls safe, so these remain literal.
+    glyphs = [(glyph[:8], cells) for word in words
+              for _, glyph, cells in visible_cells(word[:64], 0, line_width(word[:64]))
+              if not glyph[0].isspace()]
+    if not glyphs:
+        return tuple(" " * WORLD_WIDTH for _ in range(WORLD_HEIGHT))
+    narrow = [glyph for glyph, cells in glyphs if cells == 1]
     rows = []
-    for _ in range(WORLD_HEIGHT):
-        parts = [" " * rng.randrange(2, 7)]
-        column = len(parts[0])
-        while column < WORLD_WIDTH:
-            word = rng.choice(words)
-            width = line_width(word)
-            gap = rng.randrange(3, 8)
-            if column + width + gap > WORLD_WIDTH:
-                break
-            parts.extend((word, " " * gap))
-            column += width + gap
-        parts.append(" " * (WORLD_WIDTH - column))
+    for y, row in enumerate(terrain):
+        parts = []
+        x = 0
+        while x < WORLD_WIDTH:
+            glyph, cells = " ", 1
+            if paint[y][x]:
+                glyph, cells = rng.choice(glyphs)
+                # A wide glyph must fit entirely inside one scenery role; it
+                # cannot cover a trunk, shoreline, or unpainted neighbor by chance.
+                if cells == 2 and (x + 1 == WORLD_WIDTH or row[x + 1] != row[x]
+                                   or not paint[y][x + 1]):
+                    glyph, cells = (rng.choice(narrow) if narrow else " "), 1
+            parts.append(glyph)
+            x += cells
         rows.append("".join(parts))
     return tuple(rows)
 
 
 def generate_world(source_text: str, seed: str) -> World:
-    """Generate repeatable terrain first; source words only decorate the result."""
+    """Generate repeatable terrain first; source glyphs only decorate the result."""
     rng = random.Random(int.from_bytes(
         sha256(seed.encode("utf-8", errors="surrogatepass")).digest(), "big"))
     terrain = [[Terrain.MOSS] * WORLD_WIDTH for _ in range(WORLD_HEIGHT)]
@@ -125,12 +140,13 @@ def generate_world(source_text: str, seed: str) -> World:
 
     # Small separated cores give trees collision without forming walls. Leaves
     # remain passable, and the pond retains a generous surrounding bank.
-    for _ in range(WORLD_WIDTH * WORLD_HEIGHT // 18):
+    for _ in range(WORLD_WIDTH * WORLD_HEIGHT // 60):
         cx, cy = rng.randrange(3, WORLD_WIDTH - 4), rng.randrange(2, WORLD_HEIGHT - 2)
         if abs(cx - spawn[0]) < 8 and abs(cy - spawn[1]) < 4:
             continue
-        if any(terrain[y][x] in BLOCKED
-               for x, y in _ellipse(cx, cy, 4, 2)):
+        # Keep canopies apart as well as cores: open woodland, not a carpet.
+        if any(terrain[y][x] in BLOCKED or terrain[y][x] == Terrain.CANOPY
+               for x, y in _ellipse(cx, cy, 6, 3)):
             continue
         for x, y in _ellipse(cx, cy, 4, 2):
             if terrain[y][x] != Terrain.WATER:
@@ -139,11 +155,19 @@ def generate_world(source_text: str, seed: str) -> World:
     for x, y in _ellipse(*spawn, 5, 2):
         terrain[y][x] = Terrain.EARTH
 
+    # Occasional small blooms decorate walkable ground without adding collisions.
+    for _ in range(WORLD_WIDTH * WORLD_HEIGHT // 240):
+        cx, cy = rng.randrange(2, WORLD_WIDTH - 2), rng.randrange(2, WORLD_HEIGHT - 2)
+        bloom = ((cx - 1, cy), (cx, cy), (cx + 1, cy))
+        if all(terrain[y][x] in (Terrain.MOSS, Terrain.GRASS) for x, y in bloom):
+            for x, y in bloom:
+                terrain[y][x] = Terrain.FLOWER
+
     # Connectivity is a requirement, not a maze-building strategy. In the rare
     # case that cores enclose ground, make their leaves traversable instead.
     count = sum(cell not in BLOCKED for row in terrain for cell in row)
     if len(_reachable(terrain, spawn)) != count:
         terrain = [[Terrain.CANOPY if cell == Terrain.TRUNK else cell
                     for cell in row] for row in terrain]
-    return World(tuple(tuple(row) for row in terrain), _text_rows(source_text, rng),
+    return World(tuple(tuple(row) for row in terrain), _text_rows(source_text, terrain, rng),
                  spawn, pond)

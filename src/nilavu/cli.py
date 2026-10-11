@@ -53,7 +53,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     # setting this attribute is harmless on older versions without colored help.
     parser.color = False
     parser.add_argument("path", help="path to a UTF-8 source or text file")
-    parser.add_argument("--game", action="store_true", help="explore an experimental 100x40 forest")
+    parser.add_argument("--game", action="store_true", help="explore an experimental 120x40 forest")
     parser.add_argument("--reveal", action="store_true", help="show the whole forest (requires --game)")
     parser.add_argument(
         "--theme",

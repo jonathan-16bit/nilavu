@@ -105,21 +105,26 @@ environment automatically. You can also activate it with
 ./dev run src/nilavu/palette.py --game --seed fern --reveal
 ```
 
-`--game` opens a fixed **100-column by 40-row** woodland with moss, grass,
-earthy clearings, small groves, and a pond. Most ground and foliage are walkable;
-water and tree cores block movement. Use the same movement keys and `q` to quit.
+`--game` opens a fixed **120-column by 40-row** woodland with moss, grass,
+earthy clearings, spaced groves, flowers, and a pond. Most ground and foliage
+are walkable; water and tree cores block movement. Use the same movement keys
+and `q` to quit.
 This is a terrain experiment: fireflies, Space interactions, followers, and the
 pond finale are not implemented yet.
 
-The world has its own terminal-colored border. A terminal at least 102 columns
+The world has its own terminal-colored border. A terminal at least 122 columns
 by 42 rows displays the whole world; larger terminals center it in neutral space,
 and smaller terminals scroll. Changing font size or resizing changes only the
 viewport, never the generated world or movement bounds.
 
-Source words decorate the world rather than determine its layout. Short input
-is reused, long input is sampled across the file, and long words are clipped to
-fit. Empty input still produces colored terrain. Words are separated by spaces;
-the input file is read-only. The same file and seed reproduce the same world.
+Source characters form leafy canopy clusters, trunk cores, sparse ground cover,
+pond ripples, and small flower patches. Each role has its own foreground color;
+both text and backgrounds respond to the same five lighting levels. Terrain and
+placement come from the seed, independently of source-file formatting or meaning.
+Short input is reused; long input is sampled across the file. Sampled words and
+combining sequences are bounded, and wide glyphs only occupy matching terrain
+cells. Empty input still produces colored terrain. The input file is read-only.
+The same file and seed reproduce the same world.
 
 Game mode starts with the forest palette unless `--theme` is supplied. `t`
 changes colors without changing terrain; `r` advances the seed and starts a new

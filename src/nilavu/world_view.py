@@ -19,6 +19,18 @@ TERRAIN_COLORS = {
     Terrain.CANOPY: (28, 58, 37),
     Terrain.TRUNK: (72, 48, 33),
     Terrain.WATER: (34, 82, 113),
+    Terrain.FLOWER: (43, 75, 44),
+}
+
+
+TERRAIN_FOREGROUNDS = {
+    Terrain.MOSS: (127, 166, 100),
+    Terrain.GRASS: (164, 193, 113),
+    Terrain.EARTH: (177, 147, 99),
+    Terrain.CANOPY: (108, 169, 111),
+    Terrain.TRUNK: (201, 157, 103),
+    Terrain.WATER: (115, 188, 218),
+    Terrain.FLOWER: (228, 158, 195),
 }
 
 
@@ -40,7 +52,8 @@ class WorldView(SourceView):
         self._terrain_palettes = {
             kind: Palette(
                 background=palette.background,
-                foreground=palette.foreground,
+                foreground=tuple((3 * color + tint) // 4 for color, tint in
+                                 zip(TERRAIN_FOREGROUNDS[kind], palette.foreground)),
                 cell_background=tuple((3 * color + tint) // 4
                                       for color, tint in zip(rgb, palette.cell_background)),
                 cursor_background=palette.cursor_background,
