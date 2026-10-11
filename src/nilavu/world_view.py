@@ -265,8 +265,8 @@ class WorldView(SourceView):
                 if ((x, y) in companion_cells and (x, y) not in firefly_cells
                         and (x, y) != cursor_cell and glyph == "i"):
                     # Keep the ground's current lighting; only the body gets a
-                    # bright ice-blue foreground, avoiding a boxed-in dark cell.
-                    style = f"#c2f3ff on {style.partition(' on ')[2]}"
+                    # bright white foreground, avoiding a boxed-in dark cell.
+                    style = f"#ffffff on {style.partition(' on ')[2]}"
                 # Keep foliage light; reserve heavier text for small accents.
                 if (kind in (Terrain.TRUNK, Terrain.CRYSTAL, Terrain.LANTERN)
                         or (x, y) in firefly_cells or ((x, y) in companion_cells and glyph == "i")):

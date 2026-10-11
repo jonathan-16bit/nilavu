@@ -41,7 +41,7 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             content = source.render()
             self.assertEqual(content.plain.splitlines()[y][x], "i")
             body = Style.parse(content.spans[y * world.width + x].style)
-            self.assertEqual(body.color.triplet, (194, 243, 255))
+            self.assertEqual(body.color.triplet, (255, 255, 255))
             # Hide just the body while retaining its halo to compare the ground.
             source.companion_positions = ()
             ground = Style.parse(source.render().spans[y * world.width + x].style)

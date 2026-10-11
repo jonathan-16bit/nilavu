@@ -9,7 +9,8 @@ from nilavu.palette import SHADE_LEVELS
 from nilavu.world import World
 
 TRAIL_SPACING = 2
-COMPANION_RADIUS = 6.0
+# A close glow identifies the body without creating another broad light circle.
+COMPANION_RADIUS = 3.0
 
 
 def _quiet_positions(world: World, cursor: tuple[int, int], targets: tuple[tuple[int, int], ...],
