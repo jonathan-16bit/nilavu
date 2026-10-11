@@ -1,8 +1,11 @@
 """Render fixed world terrain with the viewer's existing light and text cells."""
 
+import math
+
 from textual.content import Content, Span
 
 from nilavu.cells import visible_cells
+from nilavu.fireflies import Firefly, GLOW_RADIUS, sleeping_glow_frames
 from nilavu.lighting import LightSettings, brightness_at
 from nilavu.navigation import LightPosition
 from nilavu.object_lighting import (
@@ -59,16 +62,30 @@ class WorldView(SourceView):
     """A bounded world viewport; its widget border separates it from extra space."""
 
     def __init__(self, world: World, light: LightPosition, palette: Palette,
-                 *, light_settings: LightSettings, reveal: bool = False) -> None:
+                 *, light_settings: LightSettings, reveal: bool = False,
+                 fireflies: tuple[Firefly, ...] = ()) -> None:
         super().__init__(world.text, light, palette, light_settings=light_settings)
         self.world = world
         self._glows = glow_field(world, light_settings.cell_aspect_ratio)
         self._cache_animation()
+        self.fireflies = fireflies
+        self._cache_fireflies()
         self.reveal = reveal
         self.add_class("game-world")
         self.styles.width = world.width + 2
         self.styles.height = world.height + 2
         self.update_palette(palette)
+
+    def _cache_fireflies(self) -> None:
+        self._firefly_frames = tuple(
+            sleeping_glow_frames(self.world, fly.position, self.light_settings.cell_aspect_ratio)
+            for fly in self.fireflies
+        )
+
+    def update_fireflies(self, fireflies: tuple[Firefly, ...]) -> None:
+        self.fireflies = fireflies
+        self._cache_fireflies()
+        self.update_palette(self.palette)
 
     def _cache_animation(self) -> None:
         # Precompute the small loop once per world. The timer only selects a
@@ -143,10 +160,27 @@ class WorldView(SourceView):
                     )
             palettes.append(tuple(colors))
         self._cell_palettes = tuple(palettes)
+        self._firefly_palette = Palette(
+            background=palette.background, foreground=(255, 231, 138),
+            cell_background=(116, 105, 44), cursor_background=palette.cursor_background,
+        )
+        # Only the small halo areas need extra color roles; terrain remains intact.
+        halo_cells = {cell for frames in self._firefly_frames for frame in frames for cell in frame}
+        self._firefly_palettes = {}
+        for x, y in halo_cells:
+            cell = self._cell_palettes[y][x]
+            self._firefly_palettes[x, y] = Palette(
+                background=palette.background,
+                foreground=mix(cell.foreground, (255, 231, 138), 0.20),
+                cell_background=mix(cell.cell_background, (116, 105, 44), 0.20),
+                cursor_background=palette.cursor_background,
+            )
         self.refresh()
 
     def update_world(self, world: World, light: LightPosition) -> None:
         self.world = world
+        self.fireflies = ()
+        self._cache_fireflies()
         self._glows = glow_field(world, self.light_settings.cell_aspect_ratio)
         self._cache_animation()
         self.update_palette(self.palette)
@@ -159,6 +193,17 @@ class WorldView(SourceView):
         # Textual can draw the new size before delivering its Resize event.
         # Clamp the viewport now too, so an old scroll origin cannot overrun it.
         self._follow_light(self.size.width, self.size.height)
+        firefly_cells = set()
+        firefly_light = {}
+        for fly, frames in zip(self.fireflies, self._firefly_frames):
+            distance = math.hypot(fly.position[0] - self.light_position.x,
+                                  (fly.position[1] - self.light_position.y)
+                                  * self.light_settings.cell_aspect_ratio)
+            if fly.awake or (not self.reveal and distance > self.light_settings.radius + GLOW_RADIUS):
+                continue
+            firefly_cells.add(fly.position)
+            for cell, intensity in frames[self._animation_frame].items():
+                firefly_light[cell] = max(firefly_light.get(cell, 0), intensity)
         lines, spans = [], []
         offset = 0
         for y in range(self.viewport.y, self.viewport.y + self.size.height):
@@ -177,6 +222,14 @@ class WorldView(SourceView):
                     palette = self._water_palettes[x, y]
                 elif kind in (Terrain.CRYSTAL, Terrain.LANTERN) and glow.level < self._glows[y][x].level:
                     palette = self._dim_accent_palettes[x, y]
+                nearby_glow = firefly_light.get((x, y), 0)
+                if nearby_glow > intensity:
+                    intensity = nearby_glow
+                    palette = self._firefly_palettes[x, y]
+                if (x, y) in firefly_cells:
+                    glyph = "*"
+                    palette = self._firefly_palette
+                    intensity = max(intensity, nearby_glow)
                 style = palette.style_at(intensity)
                 # Keep foliage light; reserve heavier text for small accents.
                 if kind in (Terrain.TRUNK, Terrain.CRYSTAL, Terrain.LANTERN):

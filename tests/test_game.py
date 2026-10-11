@@ -20,6 +20,11 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             source._animation_timer.pause()
             source._animation_frame = 0
             world, position = app.world, app.light_position
+            expected_rows = [list(row) for row in world.lines]
+            for fly in app.run.fireflies:
+                x, y = fly.position
+                expected_rows[y][x] = "*"
+            expected_text = "\n".join("".join(row) for row in expected_rows)
             frames = []
             for _ in range(ANIMATION_FRAMES):
                 content = source.render()
@@ -27,7 +32,7 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
                 x, y = world.spawn
                 self.assertEqual(content.spans[y * world.width + x].style,
                                  app.palette.cursor_style())
-                self.assertEqual(content.plain, world.text)
+                self.assertEqual(content.plain, expected_text)
                 source._advance_animation()
             self.assertGreater(len(set(frames)), 1)
             for kind in (Terrain.WATER, Terrain.CRYSTAL, Terrain.LANTERN):
@@ -45,6 +50,58 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             timer = source._animation_timer
             await pilot.press("q")
         self.assertIsNone(timer._task)
+
+    async def test_waking_progress_theme_resize_and_seed_reset(self):
+        app = ForestApp(seed="fern")
+        async with app.run_test(size=(80, 30)) as pilot:
+            source = app.query_one(WorldView)
+            await pilot.press("space")
+            self.assertEqual(app.run.awake_count, 0)
+            original = app.run
+            for i, fly in enumerate(original.fireflies):
+                app.light_position = LightPosition(app.world.width - 1, app.world.height - 1,
+                                                   *fly.position)
+                source.update_light(app.light_position)
+                # Exercise the ordinary input path to update the contextual help.
+                app.action_move_light(0, 0)
+                self.assertIn("Space: wake", str(source.border_title))
+                await pilot.press("space", "space")
+                self.assertEqual(app.run.awake_count, i + 1)
+                self.assertEqual(source.fireflies, app.run.fireflies)
+            self.assertIn("all awake", str(source.border_title))
+            run = app.run
+            await pilot.press("t")
+            await pilot.resize_terminal(35, 14)
+            self.assertIs(app.run, run)
+            await pilot.press("r")
+            self.assertEqual(app.run.awake_count, 0)
+            self.assertNotEqual(app.run, run)
+            self.assertEqual(source.fireflies, app.run.fireflies)
+            self.assertIn("0/3 awake", str(source.border_title))
+
+    async def test_sleepers_appear_only_nearby_and_cursor_keeps_priority(self):
+        app = ForestApp(seed="fern")
+        async with app.run_test(size=(200, 60)) as pilot:
+            source = app.query_one(WorldView)
+            source._animation_timer.pause()
+            fly = app.run.fireflies[0]
+            x, y = fly.position
+            # The underlying terrain is blank, and remains unmodified by markers.
+            self.assertEqual(app.world.lines[y][x], " ")
+            self.assertEqual(source.render().plain.splitlines()[y][x], " ")
+            app.light_position = LightPosition(app.world.width - 1, app.world.height - 1, x - 18, y)
+            source.update_light(app.light_position)
+            content = source.render()
+            self.assertEqual(content.plain.splitlines()[y][x], "*")
+            self.assertNotEqual(content.spans[y * app.world.width + x].style,
+                                app.palette.style_at(0))
+            app.light_position = LightPosition(app.world.width - 1, app.world.height - 1, x, y)
+            source.update_light(app.light_position)
+            self.assertEqual(source.render().spans[y * app.world.width + x].style,
+                             app.palette.cursor_style())
+            await pilot.press("space")
+            self.assertEqual(source.render().plain.splitlines()[y][x], " ")
+            self.assertEqual(app.world.lines[y][x], " ")
 
     async def test_world_stays_fixed_when_zooming_out_and_in(self):
         app = ForestApp(seed="pond", reveal=True)

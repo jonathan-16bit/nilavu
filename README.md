@@ -46,6 +46,7 @@ or text file to explore something else:
 | --- | --- |
 | `h`, `j`, `k`, `l` / arrow keys | Move left, down, up, and right. |
 | `w`, `a`, `s`, `d` | Move up, left, down, and right. |
+| Space (game only) | Wake the nearest sleeping firefly when nearby. |
 | `t` | Switch between moonlight and forest, remembering the forest seed. |
 | `r` | Advance to the next forest seed; does nothing in moonlight. |
 | `q` | Quit and restore the terminal. |
@@ -124,8 +125,15 @@ cast small local glows, with no interactions yet.
 Water, trunks, rock clusters, crystals, and ruin walls block movement. Ground,
 foliage, flowers, tall grass, and stepping stones are walkable. Every
 walkable cell and landmark position is reachable from the initial clearing.
-Use the same movement keys and `q` to quit. Fireflies, Space interactions,
-followers, and the pond finale are not implemented yet.
+Use the same movement keys and `q` to quit. Find three sleeping fireflies near
+the meadow, ruined arch, and rock garden. Each is a small golden `*` on reachable
+ground, with a faint pulsing halo that becomes visible when you approach it.
+The top border shows the awake count and `Space: wake` when within three
+column-width units (using the configured cell aspect ratio). Space wakes the
+nearest sleeper once; repeated presses cannot count it twice. An awakened marker
+disappears, while its collected state remains for the run. Followers and the pond
+finale are not implemented yet, so waking all three currently shows `all awake`
+and lets you keep exploring.
 
 The world has its own terminal-colored border. A terminal at least 182 columns
 by 50 rows displays the whole world; larger terminals center it in neutral space,
@@ -161,7 +169,9 @@ and the cursor highlight. Symbol appearance depends on your terminal font.
 
 Game mode starts with the forest palette unless `--theme` is supplied. `t`
 changes colors without changing terrain; `r` advances the seed and starts a new
-world at its initial clearing, in either theme. `--reveal` lights the entire world
+world at its initial clearing and resets firefly progress, in either theme.
+Changing themes or resizing preserves progress. The same seed reproduces firefly
+positions as well as the landscape. `--reveal` lights the entire world
 for inspecting its composition, while leaving collisions active. It requires
 `--game` and is an experiment preview, not a completed game.
 
