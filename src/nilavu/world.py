@@ -276,6 +276,7 @@ def generate_world(seed: str) -> World:
             _paint(terrain, rng.choice((Terrain.FLOWER, Terrain.GOLD_FLOWER)), (cx, cy), 2, 1)
     for index, center in enumerate(gardens):
         rx, ry = (12, 4) if index == 0 else (6, 2)
+        crystals = 0
         for _ in range(25 if index == 0 else 10):
             cx, cy = center[0] + rng.randrange(-rx, rx + 1), center[1] + rng.randrange(-ry, ry + 1)
             cells = tuple(_ellipse(cx, cy, 2, 1))
@@ -284,7 +285,11 @@ def generate_world(seed: str) -> World:
                                 for x, y in cells)):
                 for x, y in cells:
                     terrain[y][x] = Terrain.ROCK
-                terrain[cy][cx] = Terrain.CRYSTAL
+                # Keep the main garden rocky, with only a few glowing accents.
+                # Placement still consumes the same random draws for each seed.
+                if index != 0 or crystals < 3:
+                    terrain[cy][cx] = Terrain.CRYSTAL
+                    crystals += 1
     # Broken stone sides and a lintel frame a walkable center passage.
     ax, ay = arch
     for x in range(ax - 5, ax + 6):
