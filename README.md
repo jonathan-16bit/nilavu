@@ -126,8 +126,10 @@ Water, trunks, rock clusters, crystals, and ruin walls block movement. Ground,
 foliage, flowers, tall grass, and stepping stones are walkable. Every
 walkable cell and landmark position is reachable from the initial clearing.
 Use the same movement keys and `q` to quit. Find three sleeping fireflies near
-the meadow, ruined arch, and rock garden. Each is a small golden `*` on reachable
-ground, with a faint pulsing halo that becomes visible when you approach it.
+the meadow, ruined arch, and rock garden. Each is a bright white `i` on reachable
+ground, with a faint pale pulsing halo that becomes visible when you approach it.
+The white body stays bright while the halo pulses, distinguishing it from amber
+lanterns and flower heads.
 The top border shows the awake count and `Space: wake` when within three
 column-width units (using the configured cell aspect ratio). Space wakes the
 nearest sleeper once; repeated presses cannot count it twice. An awakened marker

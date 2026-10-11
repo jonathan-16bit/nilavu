@@ -23,7 +23,7 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             expected_rows = [list(row) for row in world.lines]
             for fly in app.firefly_run.fireflies:
                 x, y = fly.position
-                expected_rows[y][x] = "*"
+                expected_rows[y][x] = "i"
             expected_text = "\n".join("".join(row) for row in expected_rows)
             frames = []
             for _ in range(ANIMATION_FRAMES):
@@ -92,7 +92,7 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             app.light_position = LightPosition(app.world.width - 1, app.world.height - 1, x - 18, y)
             source.update_light(app.light_position)
             content = source.render()
-            self.assertEqual(content.plain.splitlines()[y][x], "*")
+            self.assertEqual(content.plain.splitlines()[y][x], "i")
             self.assertNotEqual(content.spans[y * app.world.width + x].style,
                                 app.palette.style_at(0))
             app.light_position = LightPosition(app.world.width - 1, app.world.height - 1, x, y)

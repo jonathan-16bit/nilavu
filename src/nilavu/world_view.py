@@ -161,8 +161,8 @@ class WorldView(SourceView):
             palettes.append(tuple(colors))
         self._cell_palettes = tuple(palettes)
         self._firefly_palette = Palette(
-            background=palette.background, foreground=(255, 231, 138),
-            cell_background=(116, 105, 44), cursor_background=palette.cursor_background,
+            background=palette.background, foreground=(255, 255, 255),
+            cell_background=(50, 66, 58), cursor_background=palette.cursor_background,
         )
         # Only the small halo areas need extra color roles; terrain remains intact.
         halo_cells = {cell for frames in self._firefly_frames for frame in frames for cell in frame}
@@ -171,8 +171,8 @@ class WorldView(SourceView):
             cell = self._cell_palettes[y][x]
             self._firefly_palettes[x, y] = Palette(
                 background=palette.background,
-                foreground=mix(cell.foreground, (255, 231, 138), 0.20),
-                cell_background=mix(cell.cell_background, (116, 105, 44), 0.20),
+                foreground=mix(cell.foreground, (236, 247, 255), 0.20),
+                cell_background=mix(cell.cell_background, (117, 139, 145), 0.20),
                 cursor_background=palette.cursor_background,
             )
         self.refresh()
@@ -227,12 +227,13 @@ class WorldView(SourceView):
                     intensity = nearby_glow
                     palette = self._firefly_palettes[x, y]
                 if (x, y) in firefly_cells:
-                    glyph = "*"
+                    glyph = "i"
                     palette = self._firefly_palette
-                    intensity = max(intensity, nearby_glow)
+                    # The body stays readable while its small halo pulses.
+                    intensity = 1.0
                 style = palette.style_at(intensity)
                 # Keep foliage light; reserve heavier text for small accents.
-                if kind in (Terrain.TRUNK, Terrain.CRYSTAL, Terrain.LANTERN):
+                if kind in (Terrain.TRUNK, Terrain.CRYSTAL, Terrain.LANTERN) or (x, y) in firefly_cells:
                     style += " bold"
                 if y == self.light_position.y and x <= self.light_position.x < x + cells:
                     style = self.palette.cursor_style()
