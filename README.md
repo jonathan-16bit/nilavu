@@ -1,6 +1,7 @@
 # Nilavu
 
-Nilavu is a terminal source viewer with a movable light. Nearby text and cells
+Nilavu offers a seeded terminal landscape and a source viewer with a movable
+light. Nearby text and cells
 brighten through five shading levels, while distant text fades into darkness.
 Source stays real terminal text, with a visible cursor and scrolling that follows
 the illuminated area. A thin border uses your terminal's default foreground and
@@ -26,7 +27,13 @@ and `.venv\Scripts\nilavu.exe` instead of the corresponding `.venv/bin` paths.
 
 ## Use
 
-From the repository, run in your existing terminal. `./dev run` without arguments
+Explore a landscape without supplying a file:
+
+```bash
+./dev run --game --seed violet-after-rain
+```
+
+For the source viewer, run in your existing terminal. `./dev run` without arguments
 opens Nilavu's palette source file for a quick playground; supply any local code
 or text file to explore something else:
 
@@ -98,11 +105,11 @@ See all options with `./dev run --help`. The launcher uses the existing virtual
 environment automatically. You can also activate it with
 `source .venv/bin/activate` and use `nilavu` directly.
 
-## Forest experiment
+## Landscape experiment
 
 ```bash
-./dev run src/nilavu/palette.py --game --seed fern
-./dev run src/nilavu/palette.py --game --seed fern --reveal
+./dev run --game --seed fern
+./dev run --game --seed fern --reveal
 ```
 
 `--game` opens a fixed **180-column by 48-row** landscape. Colorful meadows
@@ -125,16 +132,16 @@ viewport, never the generated world or movement bounds. Game mode defaults to a
 light radius of 16 columns; `--radius` overrides it. The ordinary viewer retains
 its radius of 12.
 
-Source characters form canopy clusters, trunk cores, pond ripples, flowers,
-and landmark details. Ordinary moss, grass, and clearings have blank text cells
-to keep walkable ground uncluttered. Warm wood colors distinguish tree cores
-from muted clearings. Each scenery role has its own foreground color;
-both text and backgrounds respond to the same five lighting levels. Terrain and
-placement come from the seed, independently of source-file formatting or meaning.
-Short input is reused; long input is sampled across the file. Sampled words and
-combining sequences are bounded, and wide glyphs only occupy matching terrain
-cells. Empty input still produces colored terrain. The input file is read-only.
-The same file and seed reproduce the same world.
+Game mode uses curated single-column symbols for foliage, wood grain, flowers,
+water ripples, stone, crystals, planks, and masonry. It never reads a source file;
+a path supplied with `--game` is rejected. The seed alone reproduces both terrain
+and scenery. Symbol choices have separate random state, so art refinements do
+not change terrain placement or landmark locations.
+
+Ordinary moss, grass, and clearings have blank text cells to keep walking ground
+uncluttered. Warm wood colors distinguish tree cores from muted clearings. Each
+scenery role has its own foreground color; both text and backgrounds respond to
+the same five lighting levels. Symbol appearance depends on your terminal font.
 
 Game mode starts with the forest palette unless `--theme` is supplied. `t`
 changes colors without changing terrain; `r` advances the seed and starts a new
@@ -144,8 +151,8 @@ for inspecting its composition, while leaving collisions active. It requires
 
 ## Input handling and current limits
 
-- Opens only the supplied local file, read-only. The viewer has no runtime
-  network access or subprocess execution.
+- Game mode needs no input file. The source viewer opens only the supplied local
+  file, read-only. Neither mode uses runtime networking or subprocess execution.
 - Accepts regular UTF-8 files up to 1 MiB. Invalid UTF-8 and NUL-containing files
   are rejected.
 - Normalizes line endings, expands tabs at four-column stops, and displays

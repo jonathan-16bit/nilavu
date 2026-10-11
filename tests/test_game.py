@@ -12,7 +12,7 @@ from nilavu.world import Terrain
 
 class GameTests(unittest.IsolatedAsyncioTestCase):
     async def test_world_stays_fixed_when_zooming_out_and_in(self):
-        app = ForestApp("fern", seed="pond", reveal=True)
+        app = ForestApp(seed="pond", reveal=True)
         async with app.run_test(size=(200, 60)) as pilot:
             world = app.world
             source = app.query_one(WorldView)
@@ -34,7 +34,7 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(app.is_running)
 
     async def test_blocked_terrain_and_seed_restart(self):
-        app = ForestApp("hello world", seed="fern")
+        app = ForestApp(seed="fern")
         async with app.run_test(size=(80, 30)) as pilot:
             source = app.query_one(WorldView)
             # Find accessible ground beside water and try to step into it.
@@ -63,7 +63,7 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             await pilot.press("q")
 
     async def test_reveal_changes_illumination_without_changing_terrain(self):
-        app = ForestApp("fern", seed="moss")
+        app = ForestApp(seed="moss")
         async with app.run_test(size=(200, 60)) as pilot:
             source = app.query_one(WorldView)
             x, y = app.world.pond
@@ -83,7 +83,7 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(app.world.passable(x,y))
 
     async def test_terrain_has_distinct_foregrounds_and_cursor_priority(self):
-        app = ForestApp("Q", seed="fern", reveal=True)
+        app = ForestApp(seed="fern", reveal=True)
         async with app.run_test(size=(200, 60)) as pilot:
             source = app.query_one(WorldView)
             colors = {}

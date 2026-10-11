@@ -11,7 +11,7 @@ class WorldTests(unittest.TestCase):
     def test_fixed_dimensions_and_connected_ground_across_seeds(self):
         for seed in range(40):
             with self.subTest(seed=seed):
-                world = generate_world("def grow_tree(): return moss", str(seed))
+                world = generate_world(str(seed))
                 self.assertEqual((world.width, world.height), (180, 48))
                 self.assertTrue(world.passable(*world.spawn))
                 # Groves must occupy the added area, not just the old map bounds.
@@ -49,32 +49,26 @@ class WorldTests(unittest.TestCase):
                 self.assertFalse(world.passable(-1, 0))
                 self.assertFalse(world.passable(180, 0))
 
-    def test_seed_repeatability_and_file_structure_does_not_determine_terrain(self):
-        first = generate_world("short", "fern")
-        self.assertEqual(first, generate_world("short", "fern"))
-        self.assertEqual(first.terrain, generate_world("many\n" * 10000, "fern").terrain)
-        self.assertEqual(first.terrain, generate_world("", "fern").terrain)
-        self.assertNotEqual(first.terrain, generate_world("short", "pond").terrain)
+    def test_seed_reproduces_terrain_and_scenery(self):
+        first = generate_world("fern")
+        self.assertEqual(first, generate_world("fern"))
+        second = generate_world("pond")
+        self.assertNotEqual(first.terrain, second.terrain)
+        self.assertNotEqual(first.lines, second.lines)
 
-    def test_text_reuse_sampling_and_unicode_stay_within_world_columns(self):
-        for text in ("", "fern", "நிலவு 森 a\u0301", "森", "a" + "\u0301" * 100000, "\u0301" * 100000,
-                     " ".join(f"word{n}" for n in range(10000))):
-            with self.subTest(length=len(text)):
-                world = generate_world(text, "fern")
+    def test_curated_symbols_fit_exact_terminal_columns(self):
+        for seed in ("", "fern", "நிலவு", "森", "a" * 10000, "\udcff"):
+            with self.subTest(seed=ascii(seed[:20])):
+                world = generate_world(seed)
                 self.assertEqual(len(world.lines), 48)
                 self.assertTrue(all(line_width(line) == 180 for line in world.lines))
-                self.assertLess(len(world.text), 100000)
-                if not text:
-                    self.assertEqual(set(world.text), {" ", "\n"})
-                if text == "fern":
-                    self.assertGreater(sum(world.text.count(c) for c in "fern"), 40)
-                    self.assertLessEqual(set(world.text), set("fern \n"))
-        sampled = generate_world("aaaa " * 5000 + "ZZZZ " * 5000, "fern").text
-        self.assertIn("Z", sampled)
-        self.assertIn("a", sampled)
+                self.assertTrue(all(cells == 1 for line in world.lines
+                                    for _, _, cells in visible_cells(line, 0, 180)))
+                self.assertNotIn("\x1b", world.text)
+                self.assertLess(len(world.text), 10000)
 
-    def test_scenery_density_and_wide_glyphs_follow_terrain(self):
-        world = generate_world("Q", "fern")
+    def test_scenery_details_follow_terrain(self):
+        world = generate_world("fern")
         counts = {kind: [0, 0] for kind in Terrain}
         for y, row in enumerate(world.terrain):
             for x, kind in enumerate(row):
@@ -93,9 +87,3 @@ class WorldTests(unittest.TestCase):
             for x, kind in enumerate(row):
                 if kind == Terrain.WATER and y % 2:
                     self.assertEqual(world.lines[y][x], " ")
-        wide = generate_world("森", "fern")
-        self.assertIn("森", wide.text)
-        for y, line in enumerate(wide.lines):
-            for x, glyph, cells in visible_cells(line, 0, wide.width):
-                if cells == 2:
-                    self.assertEqual(wide.terrain[y][x], wide.terrain[y][x + 1])

@@ -33,11 +33,10 @@ class ForestApp(NilavuApp):
     }
     """
 
-    def __init__(self, source_text: str, *, seed: str = DEFAULT_SEED,
+    def __init__(self, *, seed: str = DEFAULT_SEED,
                  theme: str = "forest", light_settings: LightSettings = DEFAULT_GAME_LIGHT_SETTINGS,
                  reveal: bool = False) -> None:
-        self._input_text = source_text
-        self.world = generate_world(source_text, seed)
+        self.world = generate_world(seed)
         self.reveal = reveal
         super().__init__(self.world.text, seed=seed, theme=theme, light_settings=light_settings)
         self.light_position = self.world.starting_light()
@@ -68,7 +67,7 @@ class ForestApp(NilavuApp):
         # Game seeds describe whole worlds. Regenerate all run state together;
         # ordinary viewer mode retains its existing palette-only behavior.
         self.seed = next_seed(self.seed)
-        self.world = generate_world(self._input_text, self.seed)
+        self.world = generate_world(self.seed)
         self.light_position = self.world.starting_light()
         self.palette = palette_for(self.palette_theme, self.seed)
         self.query_one(WorldView).update_world(self.world, self.light_position)

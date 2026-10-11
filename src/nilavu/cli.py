@@ -44,7 +44,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = _SafeArgumentParser(
         prog="nilavu",
         description=(
-            "View a local source file through a movable light. "
+            "Explore a seeded landscape with --game, or view a local source file. "
             "Move with hjkl or arrow keys. Press t to switch themes, "
             "r for the next seed (a new world in --game). Press q to quit."
         ),
@@ -52,7 +52,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     # Newer Python versions can color help. Keep help plain before sanitizing it;
     # setting this attribute is harmless on older versions without colored help.
     parser.color = False
-    parser.add_argument("path", help="path to a UTF-8 source or text file")
+    parser.add_argument("path", nargs="?", help="UTF-8 source/text file (viewer only)")
     parser.add_argument("--game", action="store_true", help="explore an experimental 180x48 landscape")
     parser.add_argument("--reveal", action="store_true", help="show the whole landscape (requires --game)")
     parser.add_argument(
@@ -83,6 +83,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     arguments = parser.parse_args(argv)
     if arguments.reveal and not arguments.game:
         parser.error("--reveal requires --game")
+    if arguments.game and arguments.path is not None:
+        parser.error("--game uses a seed, not a file path; omit the path")
+    if not arguments.game and arguments.path is None:
+        parser.error("the viewer requires a file path; use --game to explore a landscape")
     # Keep one immutable settings object throughout the UI so illumination and
     # scrolling cannot accidentally use different geometry.
     try:
@@ -92,12 +96,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     except ValueError as error:
         parser.error(str(error))
 
-    # All file validation happens before Textual enters full-screen mode.
-    try:
-        source_text = load_document(arguments.path)
-    except DocumentError as error:
-        print(f"nilavu: {error}", file=sys.stderr)
-        return 1
+    # Only the viewer reads a file. Game mode generates all scenery from its seed.
+    source_text = ""
+    if not arguments.game:
+        try:
+            source_text = load_document(arguments.path)
+        except DocumentError as error:
+            print(f"nilavu: {error}", file=sys.stderr)
+            return 1
 
     # Redirected input cannot deliver keys; redirected output is not a screen.
     # Help and loading errors remain usable without an interactive terminal.
@@ -110,7 +116,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     settings = dict(light_settings=light_settings, seed=arguments.seed)
     if arguments.game:
-        app = ForestApp(source_text, theme=arguments.theme or "forest",
+        app = ForestApp(theme=arguments.theme or "forest",
                         reveal=arguments.reveal, **settings)
     else:
         app = NilavuApp(source_text, theme=arguments.theme or DEFAULT_THEME, **settings)

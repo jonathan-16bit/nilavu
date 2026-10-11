@@ -1,4 +1,4 @@
-"""Generate a open landscape independently of source-file structure."""
+"""Generate a seeded landscape with connected terrain and named landmarks."""
 
 from collections import deque
 from collections.abc import Iterator
@@ -7,7 +7,6 @@ from enum import Enum
 from hashlib import sha256
 import random
 
-from nilavu.cells import line_width, visible_cells
 from nilavu.navigation import LightPosition
 
 WORLD_WIDTH = 180
@@ -132,47 +131,59 @@ def _connect_ground(terrain: list[list[Terrain]], spawn: tuple[int, int]) -> Non
         reached = _reachable(terrain, spawn)
 
 
-def _text_rows(source_text: str, terrain: list[list[Terrain]],
-               rng: random.Random) -> tuple[str, ...]:
-    """Arrange source glyphs along terrain shapes, rather than scattering words."""
-    # Leave ordinary ground blank so scenery and collision cores stand out.
-    # Dense leaves reveal canopy outlines; water has broken ripple rows.
-    density = {Terrain.MOSS: 0.0, Terrain.GRASS: 0.0, Terrain.EARTH: 0.0,
-               Terrain.CANOPY: 0.72, Terrain.TRUNK: 1.0, Terrain.FLOWER: 1.0,
-               Terrain.GOLD_FLOWER: 1.0, Terrain.MEADOW: 0.0,
-               Terrain.TALL_GRASS: 0.75, Terrain.STONE: 0.0,
-               Terrain.ROCK: 0.80, Terrain.CRYSTAL: 1.0, Terrain.BRIDGE: 1.0,
-               Terrain.STEPPING_STONE: 1.0, Terrain.RUIN: 1.0, Terrain.LANTERN: 1.0}
-    paint = [[((y % 2 == 0 and (x + y) % 3 != 0) if kind == Terrain.WATER
-               else rng.random() < density[kind])
-              for x, kind in enumerate(row)] for y, row in enumerate(terrain)]
-    words = source_text.split()
-    if not words:
-        return tuple(" " * WORLD_WIDTH for _ in range(WORLD_HEIGHT))
-    words = rng.sample(words, min(len(words), 96))
-    # Bound sampled words and combining sequences before repeating glyphs.
-    # The loader has already made terminal controls safe, so these remain literal.
-    glyphs = [(glyph[:8], cells) for word in words
-              for _, glyph, cells in visible_cells(word[:64], 0, line_width(word[:64]))
-              if not glyph[0].isspace()]
-    if not glyphs:
-        return tuple(" " * WORLD_WIDTH for _ in range(WORLD_HEIGHT))
-    narrow = [glyph for glyph, cells in glyphs if cells == 1]
+def _scenery_rows(terrain: tuple[tuple[Terrain, ...], ...], seed: str) -> tuple[str, ...]:
+    """Give terrain readable textures without changing placement or collisions."""
+    # Separate random state keeps art edits from moving terrain or landmarks.
+    rng = random.Random(sha256(seed.encode("utf-8", errors="surrogatepass")
+                               + b"\0scenery").digest())
+    height, width = len(terrain), len(terrain[0])
+
+    def neighbor(x: int, y: int) -> Terrain | None:
+        return terrain[y][x] if 0 <= x < width and 0 <= y < height else None
+
     rows = []
     for y, row in enumerate(terrain):
         parts = []
-        x = 0
-        while x < WORLD_WIDTH:
-            glyph, cells = " ", 1
-            if paint[y][x]:
-                glyph, cells = rng.choice(glyphs)
-                # A wide glyph must fit entirely inside one scenery role; it
-                # cannot cover a trunk, shoreline, or unpainted neighbor by chance.
-                if cells == 2 and (x + 1 == WORLD_WIDTH or row[x + 1] != row[x]
-                                   or not paint[y][x + 1]):
-                    glyph, cells = (rng.choice(narrow) if narrow else " "), 1
+        for x, kind in enumerate(row):
+            glyph = " "
+            if kind == Terrain.CANOPY:
+                leaves = (Terrain.CANOPY, Terrain.TRUNK)
+                around = sum(neighbor(nx, ny) in leaves for nx, ny in
+                             ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)))
+                # Soft rims and denser interiors read as leafy crowns, rather
+                # than unrelated characters spread across a colored patch.
+                glyph = "·" if around < 3 else rng.choice("░░▒")
+            elif kind == Terrain.TRUNK:
+                glyph = "║"
+            elif kind == Terrain.WATER:
+                # Calm broken ripple bands leave enough solid blue to read water.
+                if y % 2 == 0 and (x + y) % 5 < 3:
+                    glyph = "~"
+            elif kind in (Terrain.FLOWER, Terrain.GOLD_FLOWER):
+                glyph = "*" if neighbor(x - 1, y) == kind and neighbor(x + 1, y) == kind else "·"
+            elif kind == Terrain.TALL_GRASS:
+                glyph = rng.choice("╱│╲ ")
+            elif kind == Terrain.ROCK:
+                glyph = "▒" if neighbor(x, y - 1) == Terrain.ROCK else "▄"
+            elif kind == Terrain.CRYSTAL:
+                glyph = "◆"
+            elif kind == Terrain.BRIDGE:
+                glyph = "═" if neighbor(x, y - 1) != kind or neighbor(x, y + 1) != kind else "│"
+            elif kind == Terrain.STEPPING_STONE:
+                glyph = "▪"
+            elif kind == Terrain.RUIN:
+                # Connected masonry distinguishes a lintel from upright pillars.
+                left, right = neighbor(x - 1, y) == kind, neighbor(x + 1, y) == kind
+                below = neighbor(x, y + 1) == kind
+                if below and right and not left:
+                    glyph = "┌"
+                elif below and left and not right:
+                    glyph = "┐"
+                else:
+                    glyph = "─" if left or right else "│"
+            elif kind == Terrain.LANTERN:
+                glyph = "✦" if neighbor(x - 1, y) == kind and neighbor(x + 1, y) == kind else "·"
             parts.append(glyph)
-            x += cells
         rows.append("".join(parts))
     return tuple(rows)
 
@@ -183,8 +194,8 @@ def _paint(terrain: list[list[Terrain]], kind: Terrain,
         terrain[y][x] = kind
 
 
-def generate_world(source_text: str, seed: str) -> World:
-    """Place distinct landscape pockets, then decorate them with source glyphs."""
+def generate_world(seed: str) -> World:
+    """Place distinct landscape pockets, then give them curated scenery textures."""
     rng = random.Random(int.from_bytes(
         sha256(seed.encode("utf-8", errors="surrogatepass")).digest(), "big"))
     terrain = [[Terrain.MOSS] * WORLD_WIDTH for _ in range(WORLD_HEIGHT)]
@@ -194,7 +205,7 @@ def generate_world(source_text: str, seed: str) -> World:
                (rng.randrange(WORLD_WIDTH), rng.randrange(WORLD_HEIGHT)),
                rng.randrange(4, 10), rng.randrange(2, 5))
 
-    # Separate regions keep landmarks distinct without relying on source meaning.
+    # Separate regions keep landmarks distinct while their details vary with the seed.
     meadow = (rng.randrange(30, 46), rng.randrange(9, 15))
     garden = (rng.randrange(112, 128), rng.randrange(32, 38))
     arch = (rng.randrange(132, 146), rng.randrange(10, 16))
@@ -286,5 +297,5 @@ def generate_world(source_text: str, seed: str) -> World:
     _paint(terrain, Terrain.EARTH, spawn, 5, 2)
 
     _connect_ground(terrain, spawn)
-    return World(tuple(tuple(row) for row in terrain), _text_rows(source_text, terrain, rng),
-                 spawn, pond, landmarks)
+    cells = tuple(tuple(row) for row in terrain)
+    return World(cells, _scenery_rows(cells, seed), spawn, pond, landmarks)

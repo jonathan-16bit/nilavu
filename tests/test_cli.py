@@ -167,15 +167,15 @@ class CliTests(unittest.TestCase):
         self.assertEqual(main([str(self.path)]), 1)
 
     def test_game_options_select_forest_by_default_and_support_reveal(self):
-        self.assertEqual(main([str(self.path), "--game", "--reveal", "--seed", "pond"]), 0)
+        self.assertEqual(main(["--game", "--reveal", "--seed", "pond"]), 0)
         self.game_factory.assert_called_once_with(
-            "    [bold]\n\\x1b[31m", theme="forest", reveal=True,
+            theme="forest", reveal=True,
             light_settings=LightSettings(16.0, 2.0), seed="pond")
         self.app_factory.assert_not_called()
         self.game_factory.return_value.run.assert_called_once_with()
 
     def test_game_accepts_explicit_moonlight_and_reveal_requires_game(self):
-        self.assertEqual(main([str(self.path), "--game", "--theme", "moonlight", "--radius", "20"]), 0)
+        self.assertEqual(main(["--game", "--theme", "moonlight", "--radius", "20"]), 0)
         self.assertEqual(self.game_factory.call_args.kwargs["theme"], "moonlight")
         self.assertEqual(self.game_factory.call_args.kwargs["light_settings"], LightSettings(20, 2))
         with patch("nilavu.cli.load_document") as loader:
@@ -183,3 +183,17 @@ class CliTests(unittest.TestCase):
                 main([str(self.path), "--reveal"])
             self.assertEqual(exit_status.exception.code, 2)
             loader.assert_not_called()
+
+    def test_game_never_loads_a_file_and_rejects_paths_before_loading(self):
+        with patch("nilavu.cli.load_document") as loader:
+            self.assertEqual(main(["--game", "--seed", "violet-after-rain"]), 0)
+            with self.assertRaises(SystemExit) as status:
+                main(["--game", str(self.path)])
+            self.assertEqual(status.exception.code, 2)
+            loader.assert_not_called()
+        self.game_factory.assert_called_once()
+
+    def test_game_requires_a_terminal_even_without_a_file(self):
+        self.stdin.isatty.return_value = False
+        self.assertEqual(main(["--game"]), 1)
+        self.game_factory.assert_not_called()

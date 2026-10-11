@@ -16,7 +16,7 @@ Usage:
 Examples:
   ./dev run
   ./dev run src/nilavu/cli.py --theme forest --seed fern --radius 14
-  ./dev run src/nilavu/palette.py --game --seed fern --reveal
+  ./dev run --game --seed fern --reveal
   ./dev run "path with spaces/example.py" --theme moonlight
   ./dev test
   ./dev test -v
