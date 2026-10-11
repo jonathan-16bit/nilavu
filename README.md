@@ -133,8 +133,9 @@ lanterns and flower heads.
 The top border shows the awake count and `Space: wake` when within three
 column-width units (using the configured cell aspect ratio). Space wakes the
 nearest sleeper once; repeated presses cannot count it twice. Each awakened
-firefly joins you as a bright white `i` on a dark cell, with a small steady pale
-glow. Companions follow recent movement in wake order and hold their positions
+firefly joins you as a bright ice-blue `i` with a small steady pale glow. Its cell
+keeps the surrounding terrain's background and lighting. Companions follow
+recent movement in wake order and hold their positions
 when you stop. Newly awakened companions appear on clear ground immediately,
 without rearranging the existing group. They catch up during fast movement and
 never block your path or cover scenery symbols; the cursor and sleeping discoveries

@@ -185,10 +185,6 @@ class WorldView(SourceView):
                 cell_background=mix(cell.cell_background, (117, 139, 145), 0.20),
                 cursor_background=palette.cursor_background,
             )
-        self._companion_palette = Palette(
-            background=palette.background, foreground=(255, 255, 255),
-            cell_background=(10, 20, 26), cursor_background=palette.cursor_background,
-        )
         roles = {cell for row in self._cell_palettes for cell in row}
         roles.update(self._water_palettes.values())
         roles.update(self._dim_accent_palettes.values())
@@ -265,9 +261,12 @@ class WorldView(SourceView):
                     intensity = 1.0
                 elif (x, y) in companion_cells and (x, y) != cursor_cell and glyph == " ":
                     glyph = "i"
-                    palette = self._companion_palette
-                    intensity = 1.0
                 style = palette.style_at(intensity)
+                if ((x, y) in companion_cells and (x, y) not in firefly_cells
+                        and (x, y) != cursor_cell and glyph == "i"):
+                    # Keep the ground's current lighting; only the body gets a
+                    # bright ice-blue foreground, avoiding a boxed-in dark cell.
+                    style = f"#c2f3ff on {style.partition(' on ')[2]}"
                 # Keep foliage light; reserve heavier text for small accents.
                 if (kind in (Terrain.TRUNK, Terrain.CRYSTAL, Terrain.LANTERN)
                         or (x, y) in firefly_cells or ((x, y) in companion_cells and glyph == "i")):
