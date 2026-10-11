@@ -21,7 +21,7 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             source._animation_frame = 0
             world, position = app.world, app.light_position
             expected_rows = [list(row) for row in world.lines]
-            for fly in app.run.fireflies:
+            for fly in app.firefly_run.fireflies:
                 x, y = fly.position
                 expected_rows[y][x] = "*"
             expected_text = "\n".join("".join(row) for row in expected_rows)
@@ -56,8 +56,8 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
         async with app.run_test(size=(80, 30)) as pilot:
             source = app.query_one(WorldView)
             await pilot.press("space")
-            self.assertEqual(app.run.awake_count, 0)
-            original = app.run
+            self.assertEqual(app.firefly_run.awake_count, 0)
+            original = app.firefly_run
             for i, fly in enumerate(original.fireflies):
                 app.light_position = LightPosition(app.world.width - 1, app.world.height - 1,
                                                    *fly.position)
@@ -66,17 +66,17 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
                 app.action_move_light(0, 0)
                 self.assertIn("Space: wake", str(source.border_title))
                 await pilot.press("space", "space")
-                self.assertEqual(app.run.awake_count, i + 1)
-                self.assertEqual(source.fireflies, app.run.fireflies)
+                self.assertEqual(app.firefly_run.awake_count, i + 1)
+                self.assertEqual(source.fireflies, app.firefly_run.fireflies)
             self.assertIn("all awake", str(source.border_title))
-            run = app.run
+            run = app.firefly_run
             await pilot.press("t")
             await pilot.resize_terminal(35, 14)
-            self.assertIs(app.run, run)
+            self.assertIs(app.firefly_run, run)
             await pilot.press("r")
-            self.assertEqual(app.run.awake_count, 0)
-            self.assertNotEqual(app.run, run)
-            self.assertEqual(source.fireflies, app.run.fireflies)
+            self.assertEqual(app.firefly_run.awake_count, 0)
+            self.assertNotEqual(app.firefly_run, run)
+            self.assertEqual(source.fireflies, app.firefly_run.fireflies)
             self.assertIn("0/3 awake", str(source.border_title))
 
     async def test_sleepers_appear_only_nearby_and_cursor_keeps_priority(self):
@@ -84,7 +84,7 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
         async with app.run_test(size=(200, 60)) as pilot:
             source = app.query_one(WorldView)
             source._animation_timer.pause()
-            fly = app.run.fireflies[0]
+            fly = app.firefly_run.fireflies[0]
             x, y = fly.position
             # The underlying terrain is blank, and remains unmodified by markers.
             self.assertEqual(app.world.lines[y][x], " ")

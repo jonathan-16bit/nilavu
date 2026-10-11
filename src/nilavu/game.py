@@ -44,7 +44,7 @@ class ForestApp(NilavuApp):
                  theme: str = "forest", light_settings: LightSettings = DEFAULT_GAME_LIGHT_SETTINGS,
                  reveal: bool = False) -> None:
         self.world = generate_world(seed)
-        self.run = new_run(self.world, seed)
+        self.firefly_run = new_run(self.world, seed)
         self.reveal = reveal
         super().__init__(self.world.text, seed=seed, theme=theme, light_settings=light_settings)
         self.light_position = self.world.starting_light()
@@ -53,7 +53,7 @@ class ForestApp(NilavuApp):
         with Container(id="frame", classes="game-frame"):
             yield WorldView(self.world, self.light_position, self.palette,
                             light_settings=self.light_settings, reveal=self.reveal,
-                            fireflies=self.run.fireflies)
+                            fireflies=self.firefly_run.fireflies)
 
     def _apply_palette(self) -> None:
         source = self.query_one(WorldView)
@@ -66,13 +66,13 @@ class ForestApp(NilavuApp):
 
     def _update_status(self) -> None:
         source = self.query_one(WorldView)
-        nearby = self.run.nearest_sleeping((self.light_position.x, self.light_position.y),
+        nearby = self.firefly_run.nearest_sleeping((self.light_position.x, self.light_position.y),
                                           self.light_settings.cell_aspect_ratio)
         prompt = "Space: wake" if nearby is not None else "find fireflies"
-        if self.run.awake_count == len(self.run.fireflies):
+        if self.firefly_run.awake_count == len(self.firefly_run.fireflies):
             prompt = "all awake"
         # Put objective and contextual help first so small terminals retain them.
-        source.border_title = Text(f"{self.run.awake_count}/{len(self.run.fireflies)} awake | {prompt}")
+        source.border_title = Text(f"{self.firefly_run.awake_count}/{len(self.firefly_run.fireflies)} awake | {prompt}")
         preview = "reveal | " if self.reveal else ""
         source.border_subtitle = Text(
             f"{preview}{self.world.width}x{self.world.height} {self.palette_theme}"
@@ -85,10 +85,10 @@ class ForestApp(NilavuApp):
             self._update_status()
 
     def action_wake_firefly(self) -> None:
-        run = self.run.wake_nearby((self.light_position.x, self.light_position.y),
+        run = self.firefly_run.wake_nearby((self.light_position.x, self.light_position.y),
                                   self.light_settings.cell_aspect_ratio)
-        if run is not self.run:
-            self.run = run
+        if run is not self.firefly_run:
+            self.firefly_run = run
             self.query_one(WorldView).update_fireflies(run.fireflies)
         self._update_status()
 
@@ -97,9 +97,9 @@ class ForestApp(NilavuApp):
         # ordinary viewer mode retains its existing palette-only behavior.
         self.seed = next_seed(self.seed)
         self.world = generate_world(self.seed)
-        self.run = new_run(self.world, self.seed)
+        self.firefly_run = new_run(self.world, self.seed)
         self.light_position = self.world.starting_light()
         self.palette = palette_for(self.palette_theme, self.seed)
         self.query_one(WorldView).update_world(self.world, self.light_position)
-        self.query_one(WorldView).update_fireflies(self.run.fireflies)
+        self.query_one(WorldView).update_fireflies(self.firefly_run.fireflies)
         self._apply_palette()

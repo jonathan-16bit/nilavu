@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from nilavu.cli import main
+from nilavu.game import ForestApp
 from nilavu.lighting import LightSettings
 from nilavu.palette import DEFAULT_SEED, DEFAULT_THEME, THEMES
 
@@ -173,6 +174,16 @@ class CliTests(unittest.TestCase):
             light_settings=LightSettings(16.0, 2.0), seed="pond")
         self.app_factory.assert_not_called()
         self.game_factory.return_value.run.assert_called_once_with()
+
+    def test_real_game_instance_can_reach_the_launch_method(self):
+        # Construct the real app so instance state cannot silently hide run().
+        # Only the terminal takeover is mocked; run_test() bypasses this path.
+        self.game_factory.side_effect = ForestApp
+        with patch.object(ForestApp, "run", autospec=True) as launch:
+            launch.side_effect = lambda app: app.exit()
+            self.assertEqual(main(["--game", "--seed", "fern"]), 0)
+            launch.assert_called_once()
+            self.assertIsInstance(launch.call_args.args[0], ForestApp)
 
     def test_game_accepts_explicit_moonlight_and_reveal_requires_game(self):
         self.assertEqual(main(["--game", "--theme", "moonlight", "--radius", "20"]), 0)
