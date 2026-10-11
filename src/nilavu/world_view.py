@@ -74,6 +74,8 @@ class WorldView(SourceView):
         self._companion_light = {}
         self._cache_fireflies()
         self.reveal = reveal
+        self._finale_light = 0.0
+        self._finale_timer = None
         self.add_class("game-world")
         self.styles.width = world.width + 2
         self.styles.height = world.height + 2
@@ -111,6 +113,23 @@ class WorldView(SourceView):
 
     def on_unmount(self) -> None:
         self._animation_timer.stop()
+        self._stop_finale()
+
+    def _stop_finale(self) -> None:
+        if self._finale_timer is not None:
+            self._finale_timer.stop()
+            self._finale_timer = None
+
+    def begin_finale(self) -> None:
+        """Raise global light over two seconds, preserving the stepped shading."""
+        if self._finale_timer is None and self._finale_light < 1:
+            self._finale_timer = self.set_interval(0.25, self._advance_finale)
+
+    def _advance_finale(self) -> None:
+        self._finale_light = min(1.0, self._finale_light + 0.125)
+        if self._finale_light == 1:
+            self._stop_finale()
+        self.refresh()
 
     def _advance_animation(self) -> None:
         self._animation_frame = (self._animation_frame + 1) % ANIMATION_FRAMES
@@ -198,6 +217,9 @@ class WorldView(SourceView):
         self.refresh()
 
     def update_world(self, world: World, light: LightPosition) -> None:
+        # A new seed must also cancel a reveal that is still in progress.
+        self._stop_finale()
+        self._finale_light = 0.0
         self.world = world
         self.fireflies = ()
         self.companion_positions = ()
@@ -238,6 +260,7 @@ class WorldView(SourceView):
                     x, y, self.light_position.x, self.light_position.y,
                     self.light_settings.radius,
                     cell_aspect_ratio=self.light_settings.cell_aspect_ratio)
+                intensity = max(intensity, self._finale_light)
                 kind = self.world.terrain[y][x]
                 glow = self._glow_frames[self._animation_frame][y][x]
                 intensity = max(intensity, glow.brightness)

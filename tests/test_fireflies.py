@@ -3,7 +3,7 @@
 from collections import deque
 import unittest
 
-from nilavu.fireflies import Firefly, FireflyRun, new_run, sleeping_glow_frames
+from nilavu.fireflies import Firefly, FireflyRun, at_pond_bank, new_run, sleeping_glow_frames
 from nilavu.world import generate_world
 
 
@@ -27,6 +27,7 @@ class FireflyTests(unittest.TestCase):
                             reached.add(cell)
                             queue.append(cell)
                 self.assertTrue(positions <= reached)
+                self.assertIn(world.pond_bank, reached)
                 for x, y in positions:
                     self.assertEqual(world.lines[y][x], " ")
                 for first in positions:
@@ -76,3 +77,27 @@ class FireflyTests(unittest.TestCase):
                 run.nearest_sleeping(world.spawn, ratio)
             with self.assertRaises(ValueError):
                 sleeping_glow_frames(world, run.fireflies[0].position, ratio)
+
+    def test_finale_requires_every_discovery_and_a_walkable_shore_interaction(self):
+        world = generate_world("fern")
+        for count in (1, 2, 3):
+            run = new_run(world, "fern", count=count)
+            self.assertIs(run.finish_nearby(world, world.pond_bank, 2), run)
+            for fly in run.fireflies:
+                run = run.wake_nearby(fly.position, 2)
+            self.assertFalse(run.completed)
+            self.assertIs(run.finish_nearby(world, world.spawn, 2), run)
+            self.assertIs(run.finish_nearby(world, world.pond, 2), run)
+            finished = run.finish_nearby(world, world.pond_bank, 2)
+            self.assertTrue(finished.completed)
+            self.assertEqual(finished.awake_count, count)
+            self.assertIs(finished.finish_nearby(world, world.pond_bank, 2), finished)
+        x, y = world.pond_bank
+        self.assertTrue(at_pond_bank(world, (x - 3, y), 2))
+        self.assertFalse(at_pond_bank(world, (x - 4, y), 2))
+        self.assertTrue(at_pond_bank(world, (x, y - 1), 2))
+        self.assertFalse(at_pond_bank(world, (x, y - 2), 2))
+        self.assertTrue(at_pond_bank(world, (x, y - 2), 1))
+        for ratio in (0, -1, float("nan"), float("inf")):
+            with self.assertRaises(ValueError):
+                at_pond_bank(world, world.pond_bank, ratio)

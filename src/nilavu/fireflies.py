@@ -26,6 +26,7 @@ class FireflyRun:
     """Collected discoveries belong to one world and cannot be counted twice."""
 
     fireflies: tuple[Firefly, ...]
+    completed: bool = False
 
     @property
     def awake_count(self) -> int:
@@ -47,7 +48,27 @@ class FireflyRun:
             return self
         flies = list(self.fireflies)
         flies[index] = replace(flies[index], awake=True)
-        return FireflyRun(tuple(flies))
+        return replace(self, fireflies=tuple(flies))
+
+    def finish_nearby(self, world: World, position: tuple[int, int],
+                      cell_aspect_ratio: float) -> "FireflyRun":
+        # Completion depends on permanent collection, never decorative follower
+        # positions. An explicit interaction at the shore is still required.
+        if (not self.completed and self.fireflies
+                and self.awake_count == len(self.fireflies)
+                and at_pond_bank(world, position, cell_aspect_ratio)):
+            return replace(self, completed=True)
+        return self
+
+
+def at_pond_bank(world: World, position: tuple[int, int], cell_aspect_ratio: float) -> bool:
+    """Allow a close shore interaction, using the same geometry as waking."""
+    if not math.isfinite(cell_aspect_ratio) or cell_aspect_ratio <= 0:
+        raise ValueError("Cell aspect ratio must be finite and positive.")
+    x, y = position
+    px, py = world.pond_bank
+    return (world.passable(x, y)
+            and math.hypot(x - px, (y - py) * cell_aspect_ratio) <= INTERACTION_RADIUS)
 
 
 def new_run(world: World, seed: str, count: int = FIREFLY_COUNT) -> FireflyRun:

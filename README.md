@@ -46,7 +46,7 @@ or text file to explore something else:
 | --- | --- |
 | `h`, `j`, `k`, `l` / arrow keys | Move left, down, up, and right. |
 | `w`, `a`, `s`, `d` | Move up, left, down, and right. |
-| Space (game only) | Wake the nearest sleeping firefly when nearby. |
+| Space (game only) | Wake a nearby sleeping firefly, or gather all three at the pond bank. |
 | `t` | Switch between moonlight and forest, remembering the forest seed. |
 | `r` | Advance to the next forest seed; does nothing in moonlight. |
 | `q` | Quit and restore the terminal. |
@@ -140,8 +140,16 @@ when you stop. Newly awakened companions appear on clear ground immediately,
 without rearranging the existing group. They catch up during fast movement and
 never block your path or cover scenery symbols; the cursor and sleeping discoveries
 take drawing priority. Collection remains permanent even when a companion shares
-the cursor's cell briefly in a crowded spot. The pond finale is not implemented
-yet, so waking all three currently shows `all awake` and lets you keep exploring.
+the cursor's cell briefly in a crowded spot.
+
+Once all three are awake, the border guides you toward the pond bank with compass
+directions (`N`, `S`, `E`, `W`). At the bank on the pond's west shore, press Space
+to gather your companions and light up the landscape over two seconds. Visiting
+early shows how many fireflies remain; arrival alone never ends the run. The
+fireflies settle on clear shore cells, and completion depends on your collected
+count rather than their positions. Keep exploring the fully lit world afterward,
+or press `r` for another seed and a fresh run. Small terminals still scroll;
+lighting the entire map does not shrink it or change its size.
 
 The world has its own terminal-colored border. A terminal at least 182 columns
 by 50 rows displays the whole world; larger terminals center it in neutral space,

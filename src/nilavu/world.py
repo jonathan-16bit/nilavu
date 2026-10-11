@@ -65,6 +65,11 @@ class World:
     def text(self) -> str:
         return "\n".join(self.lines)
 
+    @property
+    def pond_bank(self) -> tuple[int, int]:
+        """The reachable shore used for the final gathering, outside the water."""
+        return next(mark.position for mark in self.landmarks if mark.name == "pond bank")
+
     def passable(self, x: int, y: int) -> bool:
         return (0 <= x < self.width and 0 <= y < self.height
                 and self.terrain[y][x] not in BLOCKED)

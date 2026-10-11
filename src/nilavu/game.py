@@ -6,7 +6,7 @@ from textual.containers import Container
 
 from nilavu.app import NilavuApp
 from nilavu.companions import Companions
-from nilavu.fireflies import new_run
+from nilavu.fireflies import at_pond_bank, new_run
 from nilavu.lighting import DEFAULT_LIGHT_SETTINGS, LightSettings
 from nilavu.palette import DEFAULT_SEED, next_seed, palette_for
 from nilavu.world import generate_world
@@ -19,7 +19,7 @@ DEFAULT_GAME_LIGHT_SETTINGS = LightSettings(16.0, DEFAULT_LIGHT_SETTINGS.cell_as
 class ForestApp(NilavuApp):
     """Explore one fixed landscape; resizing changes only its viewport."""
 
-    BINDINGS = [("space", "wake_firefly", "Wake firefly")]
+    BINDINGS = [("space", "wake_firefly", "Wake or gather fireflies")]
 
     CSS = """
     #frame.game-frame {
@@ -72,7 +72,17 @@ class ForestApp(NilavuApp):
                                           self.light_settings.cell_aspect_ratio)
         prompt = "Space: wake" if nearby is not None else "find fireflies"
         if self.firefly_run.awake_count == len(self.firefly_run.fireflies):
-            prompt = "all awake"
+            px, py = self.world.pond_bank
+            x, y = self.light_position.x, self.light_position.y
+            direction = ("N" if py < y else "S" if py > y else "")
+            direction += "W" if px < x else "E" if px > x else ""
+            prompt = f"all awake | pond {direction}"
+        if at_pond_bank(self.world, (self.light_position.x, self.light_position.y),
+                        self.light_settings.cell_aspect_ratio):
+            remaining = len(self.firefly_run.fireflies) - self.firefly_run.awake_count
+            prompt = f"pond: {remaining} still sleeping" if remaining else "Space: gather"
+        if self.firefly_run.completed:
+            prompt = "home at the pond | explore or r: new world"
         # Put objective and contextual help first so small terminals retain them.
         source.border_title = Text(f"{self.firefly_run.awake_count}/{len(self.firefly_run.fireflies)} awake | {prompt}")
         preview = "reveal | " if self.reveal else ""
@@ -84,12 +94,27 @@ class ForestApp(NilavuApp):
         position = self.light_position.move(dx, dy)
         if position != self.light_position and self.world.passable(position.x, position.y):
             super().action_move_light(dx, dy)
-            self.companions = self.companions.follow(
-                self.world, (position.x, position.y), self.light_settings.cell_aspect_ratio)
-            self.query_one(WorldView).update_companions(self.companions.positions)
+            if not self.firefly_run.completed:
+                self.companions = self.companions.follow(
+                    self.world, (position.x, position.y), self.light_settings.cell_aspect_ratio)
+                self.query_one(WorldView).update_companions(self.companions.positions)
         self._update_status()
 
     def action_wake_firefly(self) -> None:
+        if self.firefly_run.completed:
+            return
+        position = (self.light_position.x, self.light_position.y)
+        finished = self.firefly_run.finish_nearby(
+            self.world, position, self.light_settings.cell_aspect_ratio)
+        if finished is not self.firefly_run:
+            self.firefly_run = finished
+            self.companions = self.companions.gather_at_pond(
+                self.world, position, self.light_settings.cell_aspect_ratio)
+            source = self.query_one(WorldView)
+            source.update_companions(self.companions.positions)
+            source.begin_finale()
+            self._update_status()
+            return
         run = self.firefly_run.wake_nearby((self.light_position.x, self.light_position.y),
                                   self.light_settings.cell_aspect_ratio)
         if run is not self.firefly_run:

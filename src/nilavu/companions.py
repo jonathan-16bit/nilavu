@@ -58,6 +58,14 @@ class Companions:
         # regardless of how many movement events arrive between timer ticks.
         return Companions(trail, positions)
 
+    def gather_at_pond(self, world: World, cursor: tuple[int, int],
+                       cell_aspect_ratio: float) -> "Companions":
+        """Settle on clear shore cells once; later exploration leaves them here."""
+        x, y = world.pond_bank
+        targets = ((x - 2, y - 1), (x - 2, y + 1), (x, y + 2))
+        return replace(self, positions=_quiet_positions(
+            world, cursor, targets[:len(self.positions)], cell_aspect_ratio))
+
 
 def companion_glow(world: World, positions: tuple[tuple[int, int], ...],
                    cell_aspect_ratio: float) -> dict[tuple[int, int], float]:

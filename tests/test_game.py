@@ -13,6 +13,93 @@ from nilavu.world import Terrain
 
 
 class GameTests(unittest.IsolatedAsyncioTestCase):
+    async def test_pond_finale_gathers_reveals_and_preserves_completion_while_exploring(self):
+        app = ForestApp(seed="fern")
+        async with app.run_test(size=(200, 60)) as pilot:
+            source = app.query_one(WorldView)
+            source._animation_timer.pause()
+            world = app.world
+
+            def visit(position):
+                app.light_position = LightPosition(world.width - 1, world.height - 1, *position)
+                source.update_light(app.light_position)
+                app.action_move_light(0, 0)
+
+            visit(world.pond_bank)
+            self.assertIn("3 still sleeping", str(source.border_title))
+            await pilot.press("space")
+            self.assertFalse(app.firefly_run.completed)
+            self.assertIsNone(source._finale_timer)
+            for fly in app.firefly_run.fireflies:
+                visit(fly.position)
+                await pilot.press("space")
+            visit(world.spawn)
+            self.assertIn("pond", str(source.border_title))
+            await pilot.press("space")
+            self.assertFalse(app.firefly_run.completed)
+            visit(world.pond_bank)
+            self.assertIn("Space: gather", str(source.border_title))
+            self.assertFalse(app.firefly_run.completed)
+            await pilot.press("space")
+            timer = source._finale_timer
+            timer.pause()
+            self.assertTrue(app.firefly_run.completed)
+            self.assertIn("home at the pond", str(source.border_title))
+            group = app.companions
+            self.assertEqual(len(set(group.positions)), 3)
+            for x, y in group.positions:
+                self.assertTrue(world.passable(x, y))
+                self.assertEqual(world.lines[y][x], " ")
+                self.assertLessEqual(abs(x - world.pond_bank[0]), 4)
+                self.assertLessEqual(abs(y - world.pond_bank[1]), 3)
+            await pilot.press("space")
+            self.assertIs(source._finale_timer, timer)
+            levels = []
+            for _ in range(8):
+                source._advance_finale()
+                levels.append(source._finale_light)
+            self.assertEqual(levels, sorted(set(levels)))
+            self.assertEqual(levels[-1], 1)
+            self.assertIsNone(source._finale_timer)
+            completed_render = source.render()
+            source.reveal = True
+            self.assertEqual(source.render(), completed_render)
+            source.reveal = False
+            await pilot.press("a", "a", "t")
+            await pilot.resize_terminal(35, 14)
+            self.assertEqual(app.companions, group)
+            self.assertTrue(app.firefly_run.completed)
+            self.assertEqual(source._finale_light, 1)
+            self.assertIs(app.world, world)
+            await pilot.press("r")
+            self.assertFalse(app.firefly_run.completed)
+            self.assertEqual(source._finale_light, 0)
+            self.assertFalse(source.reveal)
+            self.assertEqual(source.companion_positions, ())
+
+    async def test_new_world_cancels_an_unfinished_finale_and_preserves_preview_mode(self):
+        app = ForestApp(seed="fern", reveal=True)
+        async with app.run_test(size=(80, 30)) as pilot:
+            source = app.query_one(WorldView)
+            for fly in app.firefly_run.fireflies:
+                app.light_position = LightPosition(app.world.width - 1, app.world.height - 1,
+                                                   *fly.position)
+                source.update_light(app.light_position)
+                await pilot.press("space")
+            app.light_position = LightPosition(app.world.width - 1, app.world.height - 1,
+                                               *app.world.pond_bank)
+            source.update_light(app.light_position)
+            await pilot.press("space")
+            timer = source._finale_timer
+            timer.pause()
+            source._advance_finale()
+            await pilot.press("r")
+            self.assertIsNone(source._finale_timer)
+            self.assertIsNone(timer._task)
+            self.assertEqual(source._finale_light, 0)
+            self.assertFalse(app.firefly_run.completed)
+            self.assertTrue(source.reveal)
+
     async def test_companions_follow_hold_position_and_reset_without_losing_progress(self):
         app = ForestApp(seed="fern")
         async with app.run_test(size=(200, 60)) as pilot:
