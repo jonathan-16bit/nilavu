@@ -16,7 +16,52 @@ is recommended. Nilavu uses your terminal's font and runs in the current window.
 
 Clone the repository, then install into a virtual environment.
 
-### macOS / Linux
+### Quick start (auto clone and install)
+
+Run this from the directory where you want `./nilavu` (or `.\nilavu`) created.
+This runs the same steps as the manual install below
+(`git clone`, `venv`, `pip install .`, first game run).
+
+> Note: these one-liners download and execute code from the `main` branch.
+> Inspect `install.sh` / `install.ps1` in the repository first if you prefer,
+> or use the manual setup steps below instead — they remain the auditable path
+> and need no downloaded script.
+
+macOS / Linux — requires `curl`, uses `bash`, `zsh`, or `ksh`
+(process substitution is unsupported in Fish and Windows CMD):
+
+```sh
+sh <(curl -fL https://raw.githubusercontent.com/jonathan-16bit/nilavu/main/install.sh)
+```
+
+`-f` makes `curl` fail explicitly on HTTP errors instead of feeding an error
+page to the shell.
+
+> Caution: if you are using Fish shell, DO NOT use the command above.
+> Clone and run `install.sh` instead (run from inside the checkout;
+> the script reuses it instead of nesting `nilavu/nilavu`):
+>
+> ```sh
+> git clone https://github.com/jonathan-16bit/nilavu.git
+> cd nilavu
+> sh install.sh
+> ```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/jonathan-16bit/nilavu/main/install.ps1 | iex
+```
+
+Manual fallback instead (run from inside the checkout; the script reuses it):
+
+```powershell
+git clone https://github.com/jonathan-16bit/nilavu.git
+cd nilavu
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+### macOS / Linux (manual)
 
 ```sh
 git clone https://github.com/jonathan-16bit/nilavu.git
