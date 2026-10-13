@@ -52,7 +52,11 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(app.firefly_run.completed)
             await pilot.press("space")
             timer = source._finale_timer
+            # The live 0.25s timer may have ticked before this pause on slow
+            # machines; snapshot the actual level instead of assuming zero.
+            self.assertIsNotNone(timer)
             timer.pause()
+            start = source._finale_light
             self.assertTrue(app.firefly_run.completed)
             self.assertIn("home at the pond", str(source.border_title))
             group = app.companions
@@ -68,7 +72,12 @@ class GameTests(unittest.IsolatedAsyncioTestCase):
             for _ in range(8):
                 source._advance_finale()
                 levels.append(source._finale_light)
-            self.assertEqual(levels, sorted(set(levels)))
+            # Exact relative ramp: steps are multiples of 0.125 (exact in
+            # binary FP), so replaying them from the snapshotted start must
+            # match bit-for-bit on any machine. Eight steps from any start
+            # still land exactly on 1.0.
+            expected = [min(1.0, start + 0.125 * (i + 1)) for i in range(8)]
+            self.assertEqual(levels, expected)
             self.assertEqual(levels[-1], 1)
             self.assertIsNone(source._finale_timer)
             completed_render = source.render()
